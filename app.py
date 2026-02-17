@@ -479,13 +479,21 @@ def profile():
     else:  # ADMIN
         col = admin_col
 
-    # UPDATE NAME
+    # UPDATE PROFILE
     if request.method == "POST":
         new_name = request.form.get("name")
+        new_phone = request.form.get("phone")
+        new_biz = request.form.get("business_name")
+        
         col.update_one(
             {"email": email},
-            {"$set": {"name": new_name}}
+            {"$set": {
+                "name": new_name,
+                "phone": new_phone,
+                "business_name": new_biz
+            }}
         )
+        logger.info(f"✅ Profile updated for {email}")
 
     # Fetch updated data
     data = col.find_one({"email": email})
@@ -1393,14 +1401,15 @@ def send_status_sms(phone, status, app_name, user_name="Customer"):
         msg_body = f"Hello {user_name}, thank you for your interest in '{app_name}'. Your request has been REJECTED at this time. We wish you the best! - ConnexHub"
     
     try:
-        twilio_client.messages.create(
+        response = twilio_client.messages.create(
             body=msg_body,
             from_=TWILIO_PHONE_NUMBER,
             to=target_phone
         )
-        logger.info(f"Enhanced SMS sent to {target_phone} for {user_name}")
+        logger.info(f"✅ Enhanced SMS SID: {response.sid} sent to {target_phone} for {user_name}")
     except Exception as e:
-        logger.error(f"Failed to send SMS to {target_phone}: {e}")
+        logger.error(f"❌ Twilio Error sending SMS to {target_phone}: {e}")
+        logger.error(traceback.format_exc())
 
 def notify_client_sms(client_id, app_name, user_name, user_phone):
     """Notifies the business owner (Client) about a new booking request."""
@@ -1430,14 +1439,15 @@ def notify_client_sms(client_id, app_name, user_name, user_phone):
     msg_body = f"ConnexHub Alert: ⚡ You have a new booking request from {user_name} ({user_phone}) for {app_name}. Visit your dashboard to approve it!"
 
     try:
-        twilio_client.messages.create(
+        response = twilio_client.messages.create(
             body=msg_body,
             from_=TWILIO_PHONE_NUMBER,
             to=target_phone
         )
-        logger.info(f"Client {client_id} notified of new request from {user_name}")
+        logger.info(f"✅ Client SMS SID: {response.sid} notified of new request from {user_name}")
     except Exception as e:
-        logger.error(f"Failed to notify client {client_id}: {e}")
+        logger.error(f"❌ Twilio Error notifying client {client_id} at {target_phone}: {e}")
+        logger.error(traceback.format_exc())
 
 # APPROVE
 @app.route("/approve/<id>")

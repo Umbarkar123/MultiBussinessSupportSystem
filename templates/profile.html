@@ -18,6 +18,11 @@
         </div>
 
         <div class="profile-row">
+            <label>Phone Number</label>
+            <input type="text" name="phone" value="{{ data.phone }}" placeholder="+1234567890">
+        </div>
+
+        <div class="profile-row">
             <label>Email Address</label>
             <input type="email" value="{{ data.email }}" disabled>
         </div>
@@ -34,61 +39,59 @@
 </div>
 
 <style>
+    /* SAME COLOR AS YOUR DASHBOARD */
 
-/* SAME COLOR AS YOUR DASHBOARD */
+    .profile-box {
+        max-width: 600px;
+        margin-top: 25px;
+    }
 
-.profile-box{
-    max-width:600px;
-    margin-top:25px;
-}
+    /* Proper spacing */
+    .profile-row {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 18px;
+    }
 
-/* Proper spacing */
-.profile-row{
-    display:flex;
-    flex-direction:column;
-    margin-bottom:18px;
-}
+    .profile-row label {
+        font-size: 13px;
+        margin-bottom: 6px;
+        color: #9aa4b2;
+    }
 
-.profile-row label{
-    font-size:13px;
-    margin-bottom:6px;
-    color:#9aa4b2;
-}
+    /* Inputs same style as rest of app */
+    .profile-row input {
+        padding: 11px 12px;
+        border-radius: 6px;
+        border: 1px solid #2d3748;
+        background: #0f1722;
+        color: white;
+        font-size: 14px;
+        width: 95%;
+    }
 
-/* Inputs same style as rest of app */
-.profile-row input{
-    padding:11px 12px;
-    border-radius:6px;
-    border:1px solid #2d3748;
-    background:#0f1722;
-    color:white;
-    font-size:14px;
-    width:95%;
-}
+    .profile-row input:focus {
+        border: 1px solid #facc15;
+        outline: none;
+    }
 
-.profile-row input:focus{
-    border:1px solid #facc15;
-    outline:none;
-}
+    /* Button same as your buttons */
+    .save-btn {
+        margin-top: 12px;
+        padding: 8px 16px;
+        background: #3a2d0a;
+        color: #ffcc66;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+    }
 
-/* Button same as your buttons */
-.save-btn{
-    margin-top:12px;
-    padding:8px 16px;
-    background:#3a2d0a;
-    color:#ffcc66;
-    border-radius:20px;
-    font-size:12px;
-    font-weight:500;
-    border:none;
-    cursor:pointer;
-}
-
-.save-btn:hover{
-    background:#facc15;
-    color:black;
-}
-
+    .save-btn:hover {
+        background: #facc15;
+        color: black;
+    }
 </style>
 
 {% endblock %}
