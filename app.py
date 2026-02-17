@@ -91,16 +91,21 @@ def call_llm(prompt_text, form_data):
         return "Error processing request."
 
 # ------------------ DB ------------------
-collection = db["call_requests"]
-print("DB NAME:", db.name)
+if db is not None:
+    collection = db["call_requests"]
+    admin_col = db["admin"]
+    api_col = db["api_keys"]
+    form_col = db["form_fields"]
+    user_col = db["user"]
+    logger.info("Collections initialized successfully.")
+else:
+    collection = None
+    admin_col = None
+    api_col = None
+    form_col = None
+    user_col = None
+    logger.error("Collections NOT initialized - DB connection failed.")
 
-admin_col = db["admin"]
-api_col = db["api_keys"]
-form_col = db["form_fields"]
-
-
-# ------------------ APP CONFIG ------------------
-user_col = db["user"]
 
 # ------------------ TWILIO CONFIG ------------------
 if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN:
