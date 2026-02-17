@@ -490,6 +490,7 @@ def profile():
             {"$set": {
                 "name": new_name,
                 "phone": new_phone,
+                "number": new_phone,  # Update both for compatibility
                 "business_name": new_biz
             }}
         )
@@ -1421,11 +1422,11 @@ def notify_client_sms(client_id, app_name, user_name, user_phone):
         # Try finding by name or other identifier if email lookup fails
         client = db.clients.find_one({"_id": ObjectId(client_id)}) if len(client_id) == 24 else None
 
-    if not client or not client.get("phone"):
-        logger.warning(f"Could not find phone for client {client_id}")
-        return
+    client_phone = client.get("phone") or client.get("number")
 
-    client_phone = client.get("phone")
+    if not client_phone:
+        logger.warning(f"Could not find phone or number for client {client_id}")
+        return
     
     # Standardize phone format
     clean_phone = "".join(filter(str.isdigit, str(client_phone)))

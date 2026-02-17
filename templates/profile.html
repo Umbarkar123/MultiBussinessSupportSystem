@@ -19,7 +19,7 @@
 
         <div class="profile-row">
             <label>Phone Number</label>
-            <input type="text" name="phone" value="{{ data.phone }}" placeholder="+1234567890">
+            <input type="text" name="phone" value="{{ data.phone or data.number }}" placeholder="+1234567890">
         </div>
 
         <div class="profile-row">
