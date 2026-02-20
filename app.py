@@ -282,7 +282,7 @@ def call_status_webhook():
             {"twilio_sid": call_sid},
             {"$set": {
                 "call_status": call_status,
-                "last_update": datetime.utcnow()
+                "last_update": datetime.now(IST).replace(tzinfo=None)
             }}
         )
         
@@ -369,7 +369,7 @@ def request_call():
     # ===== system fields =====
     data["status"] = "PENDING"
     data["conversation"] = []
-    data["created_at"] = datetime.utcnow()
+    data["created_at"] = datetime.now(IST).replace(tzinfo=None)
     data["user_id"] = user_email
     data["client_id"] = client_id
 
