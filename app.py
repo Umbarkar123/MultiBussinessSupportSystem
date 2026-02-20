@@ -2329,31 +2329,39 @@ def notify_client_sms(client_id, app_name, user_name, user_phone):
 @app.route("/approve/<id>")
 @client_required
 def approve_booking(id):
-    booking = db.call_requests.find_one({"_id": ObjectId(id)})
+    # Robust lookup supporting both ObjectId and string
+    try:
+        obj_id = ObjectId(id)
+        booking = db.call_requests.find_one({"_id": obj_id})
+    except:
+        booking = db.call_requests.find_one({"_id": id})
+        
     if not booking:
+        logger.warning(f"⚠️ Booking not found for approval: {id}")
         return redirect(url_for("booking_data"))
 
+    # Update status
     db.call_requests.update_one(
-        {"_id": ObjectId(id)},
+        {"_id": booking["_id"]},
         {"$set": {"status": "APPROVED"}}
     )
 
-    # Send Notification
     phone = booking.get("phone")
     app_name = booking.get("app_name", "your request")
     user_name = booking.get("name", booking.get("user_name", "Customer"))
+
+    # Send Notification
     send_status_sms(phone, "APPROVED", app_name, user_name)
 
-    # If a call time is SET and in the FUTURE, skip immediate call (Scheduler will pick it up)
     # IST FIX: Use IST now
     call_time = booking.get("call_time", None)
     now_ist = datetime.now(IST).replace(tzinfo=None)
+    
     if call_time and call_time > now_ist:
         logger.info(f"Booking {id} approved but scheduled for {call_time}. Skipping immediate call.")
     else:
-        # No schedule or schedule is now/past -> Trigger immediately
         if phone:
-            trigger_voice_call(id, phone, app_name)
+            trigger_voice_call(str(booking["_id"]), phone, app_name)
 
     return redirect(url_for("booking_data"))
 
@@ -2362,12 +2370,17 @@ def approve_booking(id):
 @app.route("/reject/<id>")
 @client_required
 def reject_booking(id):
-    booking = db.call_requests.find_one({"_id": ObjectId(id)})
+    try:
+        obj_id = ObjectId(id)
+        booking = db.call_requests.find_one({"_id": obj_id})
+    except:
+        booking = db.call_requests.find_one({"_id": id})
+        
     if not booking:
         return redirect(url_for("booking_data"))
 
     db.call_requests.update_one(
-        {"_id": ObjectId(id)},
+        {"_id": booking["_id"]},
         {"$set": {"status": "REJECTED"}}
     )
 
