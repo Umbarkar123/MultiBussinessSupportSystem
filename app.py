@@ -24,6 +24,9 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Standardize Timezone
+IST = pytz.timezone('Asia/Kolkata')
+
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev_secret_key")
 CORS(app)
@@ -271,8 +274,8 @@ def call_status_webhook():
 def check_scheduled_calls():
     """Background job to check and trigger scheduled calls."""
     with app.app_context():
-        # TIMING FIX: Use local time to match user input (which comes without timezone)
-        now = datetime.now()
+        # IST FIX: Use IST now for comparison
+        now = datetime.now(IST).replace(tzinfo=None)
         # Find APPROVED requests where call_time is now or in the past AND not initiated
         pending_calls = db.call_requests.find({
             "status": "APPROVED",
@@ -2157,8 +2160,8 @@ def submit_form(app_name):
     data["app_name"] = app_name
     data["client_id"] = client_id
     data["status"] = "PENDING"
-    # TIMING FIX: Use local time for submission timestamp
-    data["created_at"] = datetime.now()
+    # IST FIX: Use IST for submission timestamp
+    data["created_at"] = datetime.now(IST).replace(tzinfo=None)
     
     # Try to extract name, phone, and time from dynamic form fields
     extracted_name = "Unknown"
@@ -2344,12 +2347,10 @@ def approve_booking(id):
     user_name = booking.get("name", booking.get("user_name", "Customer"))
     send_status_sms(phone, "APPROVED", app_name, user_name)
 
-    # Trigger Automated Call upon Approval
-    call_time = booking.get("call_time", None)
-    
     # If a call time is SET and in the FUTURE, skip immediate call (Scheduler will pick it up)
-    # TIMING FIX: Compare against local time because call_time is naive local
-    if call_time and call_time > datetime.now():
+    # IST FIX: Use IST now
+    now_ist = datetime.now(IST).replace(tzinfo=None)
+    if call_time and call_time > now_ist:
         logger.info(f"Booking {id} approved but scheduled for {call_time}. Skipping immediate call.")
     else:
         # No schedule or schedule is now/past -> Trigger immediately
