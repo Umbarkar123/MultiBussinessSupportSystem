@@ -157,7 +157,7 @@ def migrate_forms():
     for app in legacy_apps:
         db.client_apps.update_one(
             {"client_id": app["client_id"], "app_name": app["app_name"]},
-            {"$set": {"created_at": datetime.utcnow()}},
+            {"$set": {"created_at": datetime.now(IST).replace(tzinfo=None)}},
             upsert=True
         )
     
@@ -184,11 +184,11 @@ def migrate_forms():
             "slug": slug,
             "fields": existing_form.get("fields", DEFAULT_FORM_FIELDS) if existing_form else DEFAULT_FORM_FIELDS,
             "api_key": existing_form.get("api_key", secrets.token_hex(16)) if existing_form else secrets.token_hex(16),
-            "updated_at": datetime.utcnow()
+            "updated_at": datetime.now(IST).replace(tzinfo=None)
         }
         
         if not existing_form:
-            form_data["created_at"] = datetime.utcnow()
+            form_data["created_at"] = datetime.now(IST).replace(tzinfo=None)
             db.form_builders.insert_one(form_data)
             created_count += 1
         else:
@@ -2908,7 +2908,7 @@ def llm_settings():
 #     db.applications.insert_one({
 #         "client_id": client_id,
 #         "app_name": app_name,
-#         "created_at": datetime.utcnow()
+#         "created_at": datetime.now(IST).replace(tzinfo=None)
 #     })
 #
 #     return jsonify({"status": "created"})
