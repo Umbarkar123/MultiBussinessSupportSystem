@@ -2625,11 +2625,11 @@ def api_submit(api_key):
     #             url=f"{RETELL_WEBHOOK}?call_id={call_id}&app_name={app_name}",
     #         )
     #         
-             # Track call initiation WITHOUT changing status (keep as PENDING for approval)
-            db.call_requests.update_one(
-                {"_id": call_req_result.inserted_id},
-                {"$set": {"call_initiated": True, "call_initiated_at": datetime.now(IST).replace(tzinfo=None)}}
-            )
+    #          # Track call initiation WITHOUT changing status (keep as PENDING for approval)
+    #         db.call_requests.update_one(
+    #             {"_id": call_req_result.inserted_id},
+    #             {"$set": {"call_initiated": True, "call_initiated_at": datetime.now(IST).replace(tzinfo=None)}}
+    #         )
     #         
     #         call_initiated = True
     #         logger.info(f"✅ Triggered automated call for {app_name} to {phone_num}")
