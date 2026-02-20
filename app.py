@@ -63,6 +63,7 @@ TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 RETELL_WEBHOOK = os.getenv("RETELL_WEBHOOK_URL")
+BASE_URL = os.getenv("BASE_URL", "").rstrip("/")
 
 # 3. DATABASE INITIALIZATION
 if MONGO_URI:
@@ -217,12 +218,8 @@ def trigger_voice_call(booking_id, phone, app_name):
         clean_phone = "".join(filter(str.isdigit, str(phone)))
         target_phone = "+91" + clean_phone if len(clean_phone) == 10 else ("+" + clean_phone if not str(phone).startswith("+") else str(phone))
         
-        # Determine base URL for callbacks (assuming running locally or deployed)
-        # In production this should be your public URL. For now using RETELL_WEBHOOK base if available or relative
-        callback_url = f"{request.url_root}call-status" if request else None
-
-        # If RETELL_WEBHOOK is absolute, we can try to derive host, else rely on manual config or ngrok
-        # For this implementation, we'll try to use the same host as the request if available context
+        # Use BASE_URL if available, otherwise fallback to request.url_root
+        active_base = BASE_URL if BASE_URL else (request.url_root.rstrip("/") if request else "")
         
         # Note: 'url' is for TwiML execution (Retell)
         # 'status_callback' is for status updates to OUR server
@@ -231,7 +228,7 @@ def trigger_voice_call(booking_id, phone, app_name):
             to=target_phone,
             from_=TWILIO_PHONE_NUMBER,
             url=f"{RETELL_WEBHOOK}?call_id={booking_id}&app_name={app_name}",
-            status_callback=f"{RETELL_WEBHOOK.rsplit('/retell', 1)[0]}/call-status", 
+            status_callback=f"{active_base}/call-status", 
             status_callback_event=['initiated', 'ringing', 'answered', 'completed'],
             status_callback_method='POST'
         )
