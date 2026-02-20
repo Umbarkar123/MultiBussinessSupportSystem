@@ -233,15 +233,35 @@ def trigger_voice_call(booking_id, phone, app_name):
             status_callback_method='POST'
         )
         
-        # Update DB to reflect call initiation
-        db.call_requests.update_one(
-            {"_id": ObjectId(booking_id)},
-            {"$set": {
-                "call_initiated": True, 
-                "call_initiated_at": datetime.utcnow(),
-                "twilio_sid": call.sid
-            }}
-        )
+        # Update DB to reflect call initiation - Support both ObjectId and string
+        try:
+            update_result = db.call_requests.update_one(
+                {"_id": ObjectId(booking_id)},
+                {"$set": {
+                    "call_initiated": True, 
+                    "call_initiated_at": datetime.now(IST).replace(tzinfo=None),
+                    "twilio_sid": call.sid
+                }}
+            )
+            if update_result.matched_count == 0:
+                db.call_requests.update_one(
+                    {"_id": booking_id},
+                    {"$set": {
+                        "call_initiated": True, 
+                        "call_initiated_at": datetime.now(IST).replace(tzinfo=None),
+                        "twilio_sid": call.sid
+                    }}
+                )
+        except Exception as db_e:
+            logger.warning(f"DB update fallback in trigger_voice_call: {db_e}")
+            db.call_requests.update_one(
+                {"_id": booking_id},
+                {"$set": {
+                    "call_initiated": True, 
+                    "call_initiated_at": datetime.now(IST).replace(tzinfo=None),
+                    "twilio_sid": call.sid
+                }}
+            )
 
         logger.info(f"✅ Successfully triggered call for {app_name} to {target_phone} (ID: {booking_id})")
         return True
@@ -2577,9 +2597,9 @@ def api_submit(api_key):
         "query": ai_reply[:100] if ai_reply else "",  # Short summary for table view
         "status": "PENDING",
         "call_time": call_time,
-        "time_str": datetime.utcnow().strftime("%H:%M"),
-        "created_at": datetime.utcnow(),
-        "createdAt": datetime.utcnow()  # For backward compatibility
+        "time_str": datetime.now(IST).strftime("%H:%M"),
+        "created_at": datetime.now(IST).replace(tzinfo=None),
+        "createdAt": datetime.now(IST).replace(tzinfo=None)  # For backward compatibility
     }
     call_req_result = db.call_requests.insert_one(call_request)
     call_id = str(call_req_result.inserted_id)
@@ -2605,11 +2625,11 @@ def api_submit(api_key):
     #             url=f"{RETELL_WEBHOOK}?call_id={call_id}&app_name={app_name}",
     #         )
     #         
-    #         # Track call initiation WITHOUT changing status (keep as PENDING for approval)
-    #         db.call_requests.update_one(
-    #             {"_id": call_req_result.inserted_id},
-    #             {"$set": {"call_initiated": True, "call_initiated_at": datetime.utcnow()}}
-    #         )
+             # Track call initiation WITHOUT changing status (keep as PENDING for approval)
+            db.call_requests.update_one(
+                {"_id": call_req_result.inserted_id},
+                {"$set": {"call_initiated": True, "call_initiated_at": datetime.now(IST).replace(tzinfo=None)}}
+            )
     #         
     #         call_initiated = True
     #         logger.info(f"✅ Triggered automated call for {app_name} to {phone_num}")
