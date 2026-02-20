@@ -1711,7 +1711,7 @@ def create_application():
         "slug": slug,
         "fields": DEFAULT_FORM_FIELDS,
         "api_key": secrets.token_hex(16),
-        "created_at": datetime.utcnow()
+        "created_at": datetime.now(IST).replace(tzinfo=None)
     })
 
     return jsonify({"status": "created", "app_id": app_id})
@@ -1762,7 +1762,7 @@ def application_dashboard(app_name):
                 "client_id": client_id,
                 "app_name": app_name,
                 "slug": slug,
-                "created_at": datetime.utcnow()
+                "created_at": datetime.now(IST).replace(tzinfo=None)
             }
             db.client_apps.insert_one(app_data)
         else:
@@ -2015,7 +2015,7 @@ def legacy_public_form_v2(client_id, app_name):
             "slug": slug,
             "fields": DEFAULT_FORM_FIELDS,
             "api_key": secrets.token_hex(16),
-            "created_at": datetime.utcnow()
+            "created_at": datetime.now(IST).replace(tzinfo=None)
         }
         db.form_builders.insert_one(new_form)
         form = new_form
@@ -2209,7 +2209,7 @@ def submit_form(app_name):
 
     # BASIC YEAR FIX: If year is 0026 (or < 2000), fix it
     if call_time and call_time.year < 2000:
-        now_year = datetime.utcnow().year
+        now_year = datetime.now(IST).year
         if call_time.year == 26:
              call_time = call_time.replace(year=2026)
         else:
@@ -2509,7 +2509,7 @@ def api_submit(api_key):
 
     # BASIC YEAR FIX: If year is 0026 (or < 2000), fix it to current year or next year
     if call_time and call_time.year < 2000:
-        now_year = datetime.utcnow().year
+        now_year = datetime.now(IST).year
         # If user meant 2026, but it came as 0026, add 2000
         if call_time.year == 26:
              call_time = call_time.replace(year=2026)
