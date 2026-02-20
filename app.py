@@ -2346,6 +2346,7 @@ def approve_booking(id):
 
     # If a call time is SET and in the FUTURE, skip immediate call (Scheduler will pick it up)
     # IST FIX: Use IST now
+    call_time = booking.get("call_time", None)
     now_ist = datetime.now(IST).replace(tzinfo=None)
     if call_time and call_time > now_ist:
         logger.info(f"Booking {id} approved but scheduled for {call_time}. Skipping immediate call.")
