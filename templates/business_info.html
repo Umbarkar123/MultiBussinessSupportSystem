@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="page-header">
+    <h1>Business Information</h1>
+    <p style="color:#9aa4b2">Manage your business details</p>
+</div>
+
+<div class="card profile-box">
+
+    <h2>Company Details</h2>
+
+    <div class="profile-row">
+        <label>Business Name</label>
+        <input type="text" value="{{ client.business_name }}" disabled>
+    </div>
+
+    <div class="profile-row">
+        <label>GST / Tax ID</label>
+        <input type="text" value="{{ client.gst }}" disabled>
+    </div>
+
+    <div class="profile-row">
+        <label>Contact Email</label>
+        <input type="text" value="{{ client.email }}" disabled>
+    </div>
+
+    <div class="profile-row">
+        <label>Current Plan</label>
+        <input type="text" value="Premium Plan" disabled style="color: #facc15; border-color: #facc15;">
+    </div>
+
+</div>
+
+<style>
+    .profile-box {
+        max-width: 600px;
+        margin-top: 25px;
+    }
+
+    .profile-row {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 18px;
+    }
+
+    .profile-row label {
+        font-size: 13px;
+        margin-bottom: 6px;
+        color: #9aa4b2;
+    }
+
+    .profile-row input {
+        padding: 11px 12px;
+        border-radius: 6px;
+        border: 1px solid #2d3748;
+        background: #0f1722;
+        color: white;
+        font-size: 14px;
+        width: 95%;
+    }
+</style>
+
+{% endblock %}

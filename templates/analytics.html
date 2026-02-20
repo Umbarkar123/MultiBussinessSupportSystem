@@ -1,6 +1,15 @@
 {% extends "layout.html" %}
 {% block content %}
 
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{# Pre-process numeric data to avoid script formatting issues #}
+{% set js_total = total | default(0) %}
+{% set js_confirmed = confirmed | default(0) %}
+{% set js_pending = pending | default(0) %}
+{% set js_cancelled = cancelled | default(0) %}
+
 <div class="ana-wrap">
 
     <!-- HEADER -->
@@ -8,380 +17,273 @@
         <div>
             <h1>Client Form Management Portal</h1>
             <p>Manage, review and approve user form submissions</p>
-
         </div>
         <button class="ana-export" onclick="exportTable()">Export CSV</button>
     </div>
 
-
-    <!-- KPI ROW -->
+    <!-- KPI ROW (4 Compact Cards) -->
     <div class="ana-kpi-row">
         <div class="ana-kpi">
             <span>Total Forms</span>
-            <h2>{{ total }}</h2>
+            <h2 style="color: var(--primary);">{{ total }}</h2>
         </div>
         <div class="ana-kpi">
             <span>Approved</span>
-            <h2>{{ confirmed }}</h2>
+            <h2 style="color: var(--success);">{{ confirmed }}</h2>
         </div>
         <div class="ana-kpi">
             <span>Pending</span>
-            <h2>{{ pending }}</h2>
+            <h2 style="color: #f59e0b;">{{ pending }}</h2>
         </div>
         <div class="ana-kpi">
             <span>Rejected</span>
-            <h2>{{ cancelled }}</h2>
-        </div>
-    </div>
-    <div class="info-card">
-        <div class="info-left">
-            <span>📋 Forms Today: <b>{{ total }}</b></span>
-            <span>⏳ Pending Review: <b>{{ pending }}</b></span>
-            <span>✅ Approved: <b>{{ confirmed }}</b></span>
-            <span>❌ Rejected: <b>{{ cancelled }}</b></span>
-        </div>
-
-        <div class="info-right">
-            Last updated: just now
+            <h2 style="color: var(--danger);">{{ cancelled }}</h2>
         </div>
     </div>
 
-    <!-- TABLE CARD -->
-    <div class="ana-card">
-        <div class="ana-card-head">
-            <h3>User Form Requests</h3>
+    <!-- ANALYTICS CHART SECTION (GRID) -->
+    <div class="chart-section">
 
+        <!-- FIRST ROW: 2 COLUMN (Trend & Status) -->
+        <div class="chart-row main-trend">
+            <!-- 1. SUBMISSIONS TREND -->
+            <div class="chart-card">
+                <h3><i class="fa fa-chart-line"></i> Submissions Trend</h3>
+                <div class="chart-container">
+                    <canvas id="trendChart" data-labels='{{ trend_labels | tojson }}'
+                        data-values='{{ trend_values | tojson }}'></canvas>
+                </div>
+            </div>
+
+            <!-- 2. STATUS DISTRIBUTION -->
+            <div class="chart-card">
+                <h3><i class="fa fa-chart-pie"></i> Status Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="statusChart" data-confirmed="{{ confirmed }}" data-pending="{{ pending }}"
+                        data-cancelled="{{ cancelled }}"></canvas>
+                </div>
+            </div>
         </div>
 
+        <!-- SECOND ROW: 2 COLUMN (App & Approval Ratio) -->
+        <div class="chart-row">
+            <!-- 3. APPLICATION DISTRIBUTION -->
+            <div class="chart-card">
+                <h3><i class="fa fa-shapes"></i> Requests by Application</h3>
+                <div class="chart-container">
+                    <canvas id="appChart" data-labels='{{ app_labels | tojson }}'
+                        data-values='{{ app_values | tojson }}'></canvas>
+                </div>
+            </div>
 
-        <table class="ana-table" id="dataTable">
-            <thead>
-                <tr>
-                    <th>User</th>
-                    <th>Phone</th>
-                    <th>Call Initiated</th>
-                    <th>Time</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for call in recent %}
-                <tr>
-                    <td>{{ call.name }}</td>
-                    <td>{{ call.phone }}</td>
-                    <td>
-                        {% if call.call_initiated or call.call_initiated_at %}
-                        <span style="color: #22c55e; font-weight: 600;">✓ Yes</span>
-                        {% else %}
-                        <span style="color: #94a3b8;">✕ No</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ call.time }}</td>
-                    <td>
-                        <span class="ana-status {{ call.status }}">
-                            {{ call.status }}
-                        </span>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+            <!-- 4. APPROVAL VS PENDING (BAR) -->
+            <div class="chart-card">
+                <h3><i class="fa fa-chart-bar"></i> Approval vs Pending Over Time</h3>
+                <div class="chart-container">
+                    <canvas id="balanceChart" data-labels='{{ trend_labels | tojson }}'
+                        data-values='{{ trend_values | tojson }}'></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- TABLE SECTION (FULL WIDTH) -->
+    <div class="card">
+        <div class="ana-card-head" style="margin-bottom: 20px;">
+            <h3>Recent Form Requests</h3>
+        </div>
+
+        <div class="table-responsive">
+            <table class="ana-table" id="dataTable">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Phone</th>
+                        <th>Call Initiated</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for call in recent %}
+                    <tr data-app="{{ call.app_name or 'Default' }}" data-time="{{ call.time }}"
+                        data-status="{{ call.status }}">
+                        <td>{{ call.name }}</td>
+                        <td>{{ call.phone }}</td>
+                        <td>
+                            {% if call.call_initiated or call.call_initiated_at %}
+                            <span style="color: var(--success); font-weight: 700;">✓ Yes</span>
+                            {% else %}
+                            <span style="color: var(--text-dim);">✕ No</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ call.time }}</td>
+                        <td>
+                            <span class="ana-status {{ call.status }}">
+                                {{ call.status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <script>
-    const searchInput = document.getElementById("searchInput");
-    const statusFilter = document.getElementById("statusFilter");
+    // Global Chart Config
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = "'Inter', sans-serif";
 
-    if (searchInput && statusFilter) {
-        searchInput.addEventListener("keyup", filterTable);
-        statusFilter.addEventListener("change", filterTable);
+    function initCharts() {
+        // 1. Trend Chart
+        const trendCtx = document.getElementById('trendChart');
+        if (trendCtx) {
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: JSON.parse(trendCtx.dataset.labels || '[]'),
+                    datasets: [{
+                        label: 'Submissions',
+                        data: JSON.parse(trendCtx.dataset.values || '[]'),
+                        borderColor: '#00e5ff',
+                        backgroundColor: 'rgba(0, 229, 255, 0.05)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#00e5ff',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+
+        // 2. Status Distribution
+        const statusCtx = document.getElementById('statusChart');
+        if (statusCtx) {
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Approved', 'Pending', 'Rejected'],
+                    datasets: [{
+                        data: [
+                            parseInt(statusCtx.dataset.confirmed || 0),
+                            parseInt(statusCtx.dataset.pending || 0),
+                            parseInt(statusCtx.dataset.cancelled || 0)
+                        ],
+                        backgroundColor: [
+                            'rgba(34, 197, 94, 0.7)',
+                            'rgba(245, 158, 11, 0.7)',
+                            'rgba(239, 68, 68, 0.7)'
+                        ],
+                        borderColor: 'rgba(0,0,0,0.1)',
+                        borderWidth: 2,
+                        hoverOffset: 12
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '75%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 10, boxWidth: 10, usePointStyle: true }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 3. Application Distribution
+        const appCtx = document.getElementById('appChart');
+        if (appCtx) {
+            const labels = JSON.parse(appCtx.dataset.labels || '[]');
+            const values = JSON.parse(appCtx.dataset.values || '[]');
+            new Chart(appCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels.length ? labels : ['General'],
+                    datasets: [{
+                        data: values.length ? values : [0],
+                        backgroundColor: ['#00e5ff', '#a855f7', '#ec4899', '#3b82f6', '#10b981'],
+                        borderColor: 'rgba(0,0,0,0.1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 10, boxWidth: 8, usePointStyle: true }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 4. Approval Ratio (Balance Chart)
+        const balanceCtx = document.getElementById('balanceChart');
+        if (balanceCtx) {
+            new Chart(balanceCtx, {
+                type: 'bar',
+                data: {
+                    labels: JSON.parse(balanceCtx.dataset.labels || '[]'),
+                    datasets: [
+                        {
+                            label: 'Volume',
+                            data: JSON.parse(balanceCtx.dataset.values || '[]'),
+                            backgroundColor: 'rgba(0, 229, 255, 0.6)',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        x: { stacked: false, grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } }
+                    }
+                }
+            });
+        }
     }
 
-    function filterTable() {
-        let search = searchInput.value.toLowerCase();
-        let status = statusFilter.value;
-
-        document.querySelectorAll("#dataTable tbody tr").forEach(row => {
-            let text = row.innerText.toLowerCase();
-            let rowStatus = row.className;
-
-            row.style.display =
-                text.includes(search) &&
-                    (status === "" || rowStatus === status)
-                    ? "" : "none";
-        });
-    }
+    document.addEventListener('DOMContentLoaded', initCharts);
 
     function exportTable() {
         let csv = [];
         document.querySelectorAll("table tr").forEach(row => {
             let cols = row.querySelectorAll("td, th");
-            let data = Array.from(cols).map(c => c.innerText).join(",");
+            let data = Array.from(cols).map(c => '"' + c.innerText.replace(/"/g, '""') + '"').join(",");
             csv.push(data);
         });
 
         let blob = new Blob([csv.join("\n")], { type: "text/csv" });
         let a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = "forms.csv";
+        let url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = "connexhub_form_data_" + new Date().toISOString().slice(0, 10) + ".csv";
         a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 100);
     }
 </script>
-
-<style>
-    /* ===== ANALYTICS CLEAN SAAS ===== */
-
-    .ana-wrap {
-        padding: 32px 36px;
-        color: #e5e7eb;
-        font-family: 'Segoe UI', sans-serif;
-    }
-
-    /* HEADER */
-    .ana-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 28px;
-    }
-
-    .ana-header h1 {
-        font-size: 24px;
-        font-weight: 600;
-    }
-
-    .ana-header p {
-        font-size: 14px;
-        color: #94a3b8;
-        margin-top: 4px;
-    }
-
-    .ana-export {
-        background: #0f2532;
-        border: 1px solid #243447;
-        padding: 8px 16px;
-        border-radius: 8px;
-        color: white;
-        cursor: pointer;
-    }
-
-    /* KPI */
-    .ana-kpi-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 18px;
-        margin-bottom: 30px;
-    }
-
-    .ana-kpi {
-        background: #0f2532;
-        border: 1px solid #1f3447;
-        border-radius: 12px;
-        padding: 22px;
-    }
-
-    .ana-kpi span {
-        font-size: 13px;
-        color: #94a3b8;
-    }
-
-    .ana-kpi h2 {
-        font-size: 30px;
-        margin-top: 6px;
-        font-weight: 600;
-    }
-
-    /* CARD */
-    .ana-card {
-        background: #0f2532;
-        border: 1px solid #1f3447;
-        border-radius: 14px;
-        padding: 22px;
-    }
-
-    /* CARD HEAD */
-    .ana-card-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 16px;
-    }
-
-    .ana-card-head h3 {
-        font-size: 17px;
-        font-weight: 600;
-    }
-
-    .ana-card-head span {
-        font-size: 13px;
-        color: #94a3b8;
-    }
-
-    /* TABLE */
-    .ana-table {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .ana-table th,
-    .ana-table td {
-        padding: 14px 10px;
-        border-bottom: 1px solid #223548;
-        font-size: 13px;
-        text-align: left;
-        /* Ensure alignment */
-    }
-
-    .ana-table thead {
-        background: #0b1e2a;
-    }
-
-    /* STATUS */
-    .ana-status {
-        padding: 5px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .ana-status.PENDING {
-        background: #facc15;
-        color: black;
-    }
-
-    .ana-status.APPROVED {
-        background: #22c55e;
-    }
-
-    .ana-status.REJECTED {
-        background: #ef4444;
-    }
-
-    .kpi {
-        background: #0f2532;
-        border: 1px solid #1f3447;
-        border-radius: 12px;
-
-        padding: 12px 14px;
-        /* ⬅️ reduced */
-        height: 50px;
-        /* ⬅️ reduced height */
-
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-
-    .kpi h3 {
-        font-size: 13px;
-        font-weight: 600;
-        color: #94a3b8;
-        margin-bottom: 6px;
-    }
-
-    .kpi p {
-        font-size: 26px;
-        font-weight: 700;
-        color: #fff;
-    }
-
-    .summary-strip {
-        margin: 18px 0 26px 0;
-        /* ⬅️ perfect vertical gap */
-
-        display: flex;
-        align-items: center;
-        gap: 28px;
-
-        padding: 10px 18px;
-        /* slim height */
-        font-size: 13px;
-
-        background: #0b1f2a;
-        border: 1px solid #1e3446;
-        border-radius: 10px;
-
-        color: #cbd5e1;
-    }
-
-    .summary-strip div {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        white-space: nowrap;
-    }
-
-    /* THE SPECIAL BOX BETWEEN CARDS AND TABLE */
-    .info-card {
-        margin: 18px 0 26px 0;
-
-        background: linear-gradient(180deg, #0f2532, #0b1f2a);
-        border: 1px solid #1f3647;
-        border-radius: 12px;
-
-        padding: 12px 20px;
-
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-
-        color: #cbd5e1;
-        font-size: 13px;
-    }
-
-    /* left items */
-    .info-left {
-        display: flex;
-        gap: 32px;
-        align-items: center;
-    }
-
-    /* right text */
-    .info-right {
-        color: #94a3b8;
-        font-size: 12px;
-    }
-
-    /* ===== FORCE SMALL KPI CARDS (OVERRIDE) ===== */
-    /* ===== ULTRA COMPACT KPI CARDS ===== */
-
-    .kpi-container {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 12px;
-        margin-bottom: 14px;
-    }
-
-    .kpi {
-        background: #0f2532;
-        border: 1px solid #1e3a4c;
-        border-radius: 8px;
-        padding: 8px 12px;
-        /* 🔥 reduced */
-        height: 60px;
-        /* 🔥 reduced height */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-
-    .kpi h3 {
-        font-size: 11px;
-        /* 🔥 smaller title */
-        color: #8aa4b5;
-        margin: 0;
-        font-weight: 500;
-    }
-
-    .kpi p {
-        font-size: 18px;
-        /* 🔥 smaller number */
-        margin: 2px 0 0 0;
-        font-weight: 600;
-        color: white;
-    }
-</style>
 
 {% endblock %}

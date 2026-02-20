@@ -1,411 +1,93 @@
-<!--<!DOCTYPE html>-->
-<!--<html>-->
-<!--<head>-->
-<!--    <title>Login • Voice Agent</title>-->
-<!--    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">-->
-
-<!--    <style>-->
-<!--        body{-->
-<!--            margin:0;-->
-<!--            font-family:'Segoe UI', sans-serif;-->
-<!--            background:#0b1220;-->
-<!--            display:flex;-->
-<!--            justify-content:center;-->
-<!--            align-items:center;-->
-<!--            height:100vh;-->
-<!--        }-->
-
-<!--        /* FIXED CARD SIZE */-->
-<!--        .login-card{-->
-<!--            width:420px;-->
-<!--            background:#111827;-->
-<!--            padding:40px;-->
-<!--            border-radius:12px;-->
-<!--            border:1px solid #253347;-->
-<!--            transition:0.25s ease;-->
-<!--            position:relative;-->
-<!--        }-->
-
-<!--        /* LEFT YELLOW ACCENT LIKE KPI */-->
-<!--        .login-card::before{-->
-<!--            content:"";-->
-<!--            position:absolute;-->
-<!--            left:0;-->
-<!--            top:0;-->
-<!--            height:100%;-->
-<!--            width:4px;-->
-<!--            background:var(&#45;&#45;dark-yellow);-->
-<!--            border-radius:12px 0 0 12px;-->
-<!--            opacity:0.9;-->
-<!--        }-->
-
-<!--        /* HOVER = WHITE BORDER (not yellow) */-->
-<!--        .login-card:hover{-->
-<!--            border:1px solid #ffffff;-->
-<!--        }-->
-
-<!--        .title{-->
-<!--            text-align:center;-->
-<!--            font-size:22px;-->
-<!--            font-weight:500;-->
-<!--            color:#ffffff;-->
-<!--            margin-bottom:6px;-->
-<!--        }-->
-
-<!--        .subtitle{-->
-<!--            text-align:center;-->
-<!--            font-size:13px;-->
-<!--            color:#9aa4b2;-->
-<!--            margin-bottom:28px;-->
-<!--        }-->
-
-<!--        .form-group{-->
-<!--            margin-bottom:18px;-->
-<!--        }-->
-
-<!--        .form-group label{-->
-<!--            font-size:13px;-->
-<!--            font-weight:500;-->
-<!--            color:#cbd5e1;-->
-<!--        }-->
-
-<!--        .form-group input{-->
-<!--            width:100%;-->
-<!--            padding:11px;-->
-<!--            margin-top:6px;-->
-<!--            border-radius:8px;-->
-<!--            border:1px solid #2d3748;-->
-<!--            background:#0f1722;-->
-<!--            color:white;-->
-<!--            font-size:13px;-->
-<!--        }-->
-
-<!--        .form-group input:focus{-->
-<!--            outline:none;-->
-<!--            border:1px solid var(&#45;&#45;dark-yellow);-->
-<!--        }-->
-
-<!--        .row{-->
-<!--            display:flex;-->
-<!--            justify-content:space-between;-->
-<!--            font-size:12px;-->
-<!--            margin-bottom:22px;-->
-<!--            color:#9aa4b2;-->
-<!--        }-->
-
-<!--        .row a{-->
-<!--            color:var(&#45;&#45;dark-yellow);-->
-<!--            text-decoration:none;-->
-<!--            font-weight:500;-->
-<!--        }-->
-
-<!--        .login-btn{-->
-<!--            width:100%;-->
-<!--            padding:11px;-->
-<!--            border-radius:20px;-->
-<!--            border:none;-->
-<!--            background:#3a2d0a;-->
-<!--            color:#ffcc66;-->
-<!--            font-size:12px;-->
-<!--            font-weight:500;-->
-<!--            cursor:pointer;-->
-<!--        }-->
-
-<!--        .login-btn:hover{-->
-<!--            background:var(&#45;&#45;dark-yellow);-->
-<!--            color:black;-->
-<!--        }-->
-
-<!--        .error{-->
-<!--            margin-top:12px;-->
-<!--            color:#ef4444;-->
-<!--            text-align:center;-->
-<!--            font-size:13px;-->
-<!--        }-->
-
-<!--        .footer{-->
-<!--            text-align:center;-->
-<!--            margin-top:26px;-->
-<!--            font-size:12px;-->
-<!--            color:#6b7280;-->
-<!--        }-->
-
-<!--        .show-pass{-->
-<!--            position:relative;-->
-<!--        }-->
-
-<!--        .show-pass span{-->
-<!--            position:absolute;-->
-<!--            right:12px;-->
-<!--            top:36px;-->
-<!--            font-size:12px;-->
-<!--            cursor:pointer;-->
-<!--            color:var(&#45;&#45;dark-yellow);-->
-<!--        }-->
-<!--    </style>-->
-<!--</head>-->
-
-<!--<body>-->
-
-<!--<div class="login-card">-->
-
-<!--    <div class="title">User Support System</div>-->
-<!--    <div class="subtitle">Secure access to AI voice operations dashboard</div>-->
-
-<!--    <form method="POST">-->
-
-<!--        <div class="form-group">-->
-<!--            <label>Email Address</label>-->
-<!--            <input type="email" name="email" required>-->
-<!--        </div>-->
-
-<!--        <div class="form-group show-pass">-->
-<!--            <label>Password</label>-->
-<!--            <input type="password" name="password" id="password" required>-->
-<!--            <span onclick="togglePass()">Show</span>-->
-<!--        </div>-->
-
-<!--        <div class="row">-->
-<!--            <label><input type="checkbox"> Remember me</label>-->
-<!--            <a href="#">Forgot password?</a>-->
-<!--        </div>-->
-
-<!--        <button type="submit" class="login-btn">Login to Dashboard</button>-->
-
-<!--        {% if error %}-->
-<!--        <div class="error">{{ error }}</div>-->
-<!--        {% endif %}-->
-<!--    </form>-->
-
-<!--    <div class="footer">-->
-<!--        © 2026 Voice Agent Pvt Ltd • Secure Admin Access-->
-<!--    </div>-->
-
-<!--</div>-->
-
-<!--<script>-->
-<!--function togglePass(){-->
-<!--    const p = document.getElementById("password");-->
-<!--    p.type = p.type === "password" ? "text" : "password";-->
-<!--}-->
-<!--</script>-->
-
-<!--</body>-->
-<!--</html>-->
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Login • ConnexHub</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        :root{
-            --primary:#1f8fff;
-            --primary-hover:#3aa0ff;
-            --bg:#0b1220;
-            --card:#111827;
-            --border:#253347;
-            --input:#0f1722;
-            --text:#e2e8f0;
-            --muted:#94a3b8;
-        }
-
-        body{
-            margin:0;
-            font-family:'Segoe UI', sans-serif;
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
             background: radial-gradient(circle at top, #0f172a, #020617);
-            height:100vh;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            color:var(--text);
         }
-
-        .login-wrapper{
-            width:100%;
-            max-width:480px;
-        }
-
-        .brand{
-            text-align:center;
-            font-size:22px;
-            font-weight:600;
-            margin-bottom:20px;
-            color:var(--primary);
-        }
-
-        .login-card{
-            background:linear-gradient(145deg,#0f172a,#020617);
-            border:1px solid #1e293b;
-            border-radius:14px;
-            padding:40px;
-            box-shadow:0 10px 40px rgba(0,0,0,0.5);
-        }
-
-        .title{
-            font-size:22px;
-            font-weight:600;
-            margin-bottom:4px;
-        }
-
-        .subtitle{
-            font-size:13px;
-            color:var(--muted);
-            margin-bottom:26px;
-        }
-
-        .form-group{
-            margin-bottom:18px;
-        }
-
-        .form-group label{
-            font-size:13px;
-            color:#cbd5e1;
-        }
-
-        .form-group input{
-            width:100%;
-            padding:11px;
-            margin-top:6px;
-            border-radius:8px;
-            border:1px solid #1e293b;
-            background:var(--input);
-            color:white;
-            font-size:13px;
-            transition:0.2s;
-        }
-
-        .form-group input:focus{
-            outline:none;
-            border:1px solid var(--primary);
-            box-shadow:0 0 0 2px rgba(31,143,255,0.15);
-        }
-
-        .show-pass{
-            position:relative;
-        }
-
-        .show-pass span{
-            position:absolute;
-            right:12px;
-            top:36px;
-            font-size:12px;
-            cursor:pointer;
-            color:var(--primary);
-        }
-
-        .row{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            font-size:12px;
-            margin-bottom:22px;
-            color:var(--muted);
-        }
-
-        .row input{
-            margin-right:6px;
-        }
-
-        .row a{
-            color:var(--primary);
-            text-decoration:none;
-        }
-
-        .login-btn{
-            width:100%;
-            padding:12px;
-            border-radius:8px;
-            border:none;
-            background:var(--primary);
-            color:white;
-            font-weight:600;
-            font-size:14px;
-            cursor:pointer;
-            transition:0.2s;
-        }
-
-        .login-btn:hover{
-            background:var(--primary-hover);
-        }
-
-        .error{
-            margin-top:14px;
-            background:#7f1d1d;
-            color:#fecaca;
-            padding:10px;
-            border-radius:6px;
-            text-align:center;
-            font-size:13px;
-        }
-
-        .footer{
-            text-align:center;
-            margin-top:18px;
-            font-size:12px;
-            color:#64748b;
-        }
-
-        .footer span{
-            color:var(--primary);
-        }
-
     </style>
 </head>
 
 <body>
 
-<div class="login-wrapper">
-
-    <div class="brand">⚡ ConnexHub</div>
-
-    <div class="login-card">
-
-        <div class="title">Client & Admin Login</div>
-        <div class="subtitle">Secure access to your call automation dashboard</div>
-
-        <form method="POST" action="/login">
-
-            <div class="form-group">
-                <label>Email Address</label>
-                <input type="email" name="email" placeholder="you@example.com" required>
-            </div>
-
-            <div class="form-group show-pass">
-                <label>Password</label>
-                <input type="password" name="password" id="password" placeholder="Enter password" required>
-                <span onclick="togglePass()">Show</span>
-            </div>
-
-            <div class="row">
-                <label><input type="checkbox"> Remember me</label>
-                <a href="#">Forgot password?</a>
-            </div>
-
-            <button type="submit" class="login-btn">
-                Login to Dashboard
-            </button>
-
-            {% if error %}
-            <div class="error">{{ error }}</div>
-            {% endif %}
-
-        </form>
-
-        <div class="footer">
-            © 2026 <span>ConnexHub</span> • Secure SaaS Platform
+    <div class="login-wrapper" style="width: 100%; max-width: 420px; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+            <i class="fa fa-bolt" style="font-size: 32px; color: var(--primary); margin-bottom: 12px;"></i>
+            <h1
+                style="font-size: 24px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">
+                ConnexHub</h1>
+            <p style="color: var(--text-dim); font-size: 13px; margin-top: 8px;">Secure Client & Admin Access</p>
         </div>
 
+        <div class="card login-card">
+            <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px; text-align: center;">Welcome Back</h2>
+            <p style="color: var(--text-dim); font-size: 13px; text-align: center; margin-bottom: 24px;">Enter your
+                credentials to access the dashboard</p>
+
+            <form method="POST" action="/login" class="dark-form">
+                <div class="form-row">
+                    <label>Email Address</label>
+                    <input type="email" name="email" placeholder="you@example.com" required>
+                </div>
+
+                <div class="form-row" style="position: relative;">
+                    <label>Password</label>
+                    <input type="password" name="password" id="password" placeholder="Enter password" required>
+                    <span onclick="togglePass()"
+                        style="position: absolute; right: 12px; top: 34px; font-size: 11px; color: var(--primary); cursor: pointer; font-weight: 700; text-transform: uppercase;">Show</span>
+                </div>
+
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; font-size: 12px; color: var(--text-dim);">
+                    <label
+                        style="display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; font-weight: 400;">
+                        <input type="checkbox" style="width: auto; margin: 0;"> Remember me
+                    </label>
+                    <a href="#" style="color: var(--primary); text-decoration: none; font-weight: 600;">Forgot
+                        password?</a>
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%;">
+                    Login to Dashboard
+                </button>
+
+                {% if error %}
+                <div
+                    style="margin-top: 16px; padding: 10px; background: rgba(239, 68, 68, 0.1); color: #f87171; border-radius: var(--radius-sm); border: 1px solid rgba(239, 68, 68, 0.2); text-align: center; font-size: 13px; font-weight: 600;">
+                    <i class="fa fa-triangle-exclamation" style="margin-right: 6px;"></i> {{ error }}
+                </div>
+                {% endif %}
+            </form>
+
+            <div
+                style="text-align: center; margin-top: 32px; font-size: 12px; color: var(--text-dim); border-top: 1px solid var(--border-color); padding-top: 20px;">
+                © 2026 <span style="color: var(--primary); font-weight: 700;">ConnexHub</span> • Production Environment
+            </div>
+        </div>
     </div>
 
-</div>
-
-<script>
-function togglePass(){
-    const p = document.getElementById("password");
-    p.type = p.type === "password" ? "text" : "password";
-}
-</script>
+    <script>
+        function togglePass() {
+            const p = document.getElementById("password");
+            const s = event.target;
+            if (p.type === "password") {
+                p.type = "text";
+                s.innerText = "Hide";
+            } else {
+                p.type = "password";
+                s.innerText = "Show";
+            }
+        }
+    </script>
 
 </body>
+
 </html>

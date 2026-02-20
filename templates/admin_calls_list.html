@@ -1,39 +1,211 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h2>Calls for {{ client.company_name }}</h2>
+<div class="calls-list-wrap" style="padding: 24px; background: #020617; min-height: 100vh;">
 
-<div class="card full">
-    <table class="calls-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Call Initiated</th>
-                <th>Time</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in calls %}
-            <tr>
-                <td>{{ row.name }}</td>
-                <td>{{ row.phone }}</td>
-                <td>
-                    {% if row.call_initiated or row.call_initiated_at %}
-                    <span style="color: #22c55e; font-weight: 600;">✓ Yes</span>
+    <!-- HEADER -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <a href="/admin/calls" class="btn-micro"
+                style="padding: 10px; border-radius: 50%; width: 36px; height: 36px; display: inline-flex; justify-content: center; align-items: center; text-decoration: none;">
+                <i class="fa fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 style="font-size: 20px; font-weight: 700; color: #f8fafc; margin: 0;">
+                    {{ app_filter if app_filter else 'All Applications' }}
+                </h1>
+                <p style="font-size: 13px; color: #64748b; margin: 2px 0 0 0;">
+                    Call Logs for <strong style="color: #94a3b8;">{{ client.company_name }}</strong>
+                </p>
+            </div>
+        </div>
+
+        <!-- APP FILTER -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 12px; font-weight: 600; color: #64748b;">Filter App:</span>
+            <select onchange="location.href='/admin/calls?client={{ client_id }}&app=' + this.value"
+                style="background: #0f172a; border: 1px solid #1e293b; color: #f8fafc; padding: 8px 16px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer; min-width: 160px;">
+                <option value="">All Applications</option>
+                {% for app in apps %}
+                <option value="{{ app }}" {{ 'selected' if app==app_filter else '' }}>{{ app }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- CALLS TABLE -->
+    <div class="card"
+        style="padding: 0; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden;">
+        <div class="table-responsive">
+            <table class="saas-table">
+                <thead>
+                    <tr>
+                        <th style="padding: 14px 20px;">Customer</th>
+                        <th style="padding: 14px 20px;">Phone</th>
+                        <th style="padding: 14px 20px;">Application</th>
+                        <th style="padding: 14px 20px; text-align: center;">Call Initiated</th>
+                        <th style="padding: 14px 20px;">Requested Time</th>
+                        <th style="padding: 14px 20px;">Scheduled Call Time</th>
+                        <th style="padding: 14px 20px; text-align: center;">Status</th>
+                        <th style="padding: 14px 20px; text-align: right;">Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in calls %}
+                    <tr class="call-row">
+                        <td style="padding: 14px 20px;">
+                            <strong style="color: #f8fafc; font-size: 14px;">{{ row.name }}</strong>
+                        </td>
+                        <td style="padding: 14px 20px; font-size: 13px; color: #94a3b8;">{{ row.phone }}</td>
+                        <td style="padding: 14px 20px;">
+                            <span class="app-badge">{{ row.app_name or 'Default' }}</span>
+                        </td>
+                        <td style="padding: 14px 20px; text-align: center;">
+                            {% if row.call_initiated or row.call_initiated_at %}
+                            <div class="init-chip success"><i class="fa fa-check-circle"></i> Yes</div>
+                            {% else %}
+                            <div class="init-chip"><i class="fa fa-times-circle" style="opacity: 0.5;"></i> No</div>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 20px; font-size: 13px; color: #64748b;">
+                            {{ row.created_at if row.created_at else row.time }}
+                        </td>
+                        <td style="padding: 14px 20px; font-size: 13px; color: #00e5ff;">
+                            {% if row.call_time %}
+                            {{ row.call_time.strftime('%b %d, %H:%M') }}
+                            {% else %}
+                            <span style="opacity: 0.4;">Immediate</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding: 14px 20px; text-align: center;">
+                            <span class="status-pill {{ row.status|lower }}">{{ row.status }}</span>
+                        </td>
+                        <td style="padding: 14px 20px; text-align: right;">
+                            <a href="/call/{{ row._id }}" class="btn-micro">
+                                <i class="fa fa-info-circle"></i> Info
+                            </a>
+                        </td>
+                    </tr>
                     {% else %}
-                    <span style="color: #94a3b8;">✕ No</span>
-                    {% endif %}
-                </td>
-                <td>{{ row.time }}</td>
-                <td>{{ row.status }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                    <tr>
+                        <td colspan="8" style="padding: 40px; text-align: center; color: #64748b;">
+                            <i class="fa fa-phone-slash"
+                                style="font-size: 24px; display: block; margin-bottom: 12px; opacity: 0.3;"></i>
+                            No call logs found for this filter.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- FOOTER -->
+        <div
+            style="padding: 14px 20px; border-top: 1px solid #1e293b; color: #64748b; font-size: 12px; background: rgba(255,255,255,0.01);">
+            Total Sessions: <span style="color: #f8fafc; font-weight: 600;">{{ calls|length }}</span>
+        </div>
+    </div>
 </div>
 
-<a href="/admin/calls" class="copy-btn">⬅ Back to Clients</a>
+<style>
+    .saas-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .saas-table th {
+        background: rgba(255, 255, 255, 0.02);
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        text-align: left;
+        border-bottom: 1px solid #1e293b;
+    }
+
+    .call-row {
+        transition: background 0.2s;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .call-row:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .app-badge {
+        background: rgba(0, 229, 255, 0.08);
+        color: #00e5ff;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        border: 1px solid rgba(0, 229, 255, 0.15);
+    }
+
+    .init-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #64748b;
+    }
+
+    .init-chip.success {
+        color: #22c55e;
+    }
+
+    .status-pill {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+
+    .status-pill.pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .status-pill.approved {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+    }
+
+    .status-pill.rejected {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4468;
+    }
+
+    .status-pill.completed {
+        background: rgba(0, 229, 255, 0.1);
+        color: #00e5ff;
+    }
+
+    .btn-micro {
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        border: 1px solid #1e293b;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-micro:hover {
+        border-color: #334155;
+        background: rgba(255, 255, 255, 0.08);
+        color: #f8fafc;
+    }
+</style>
 
 {% endblock %}

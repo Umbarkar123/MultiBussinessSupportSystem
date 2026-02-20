@@ -1,74 +1,392 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="page-header">
-    <h1>Call Details</h1>
-</div>
+<div class="call-details-wrap" style="padding: 24px; background: #020617; min-height: 100vh;">
 
-<!-- Top Info Cards -->
-<div class="details-grid">
-
-    <div class="info-card">
-        <h3>Customer Information</h3>
-        <p><b>Name:</b> {{ call.name }}</p>
-        <p><b>Phone:</b> {{ call.phone }}</p>
-        <p><b>Email:</b> {{ call.email }}</p>
-        <p>
-            <b>Status:</b>
-            <span class="badge {{ call.status|lower }}">
+    <!-- ===== PART 1: HEADER SECTION ===== -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <a href="/calls" class="btn-micro"
+                style="width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; text-decoration: none;">
+                <i class="fa fa-arrow-left"></i>
+            </a>
+            <div>
+                <h1 style="font-size: 24px; font-weight: 700; color: #f8fafc; margin: 0;">Call Details</h1>
+                <p style="font-size: 14px; color: #64748b; margin: 4px 0 0 0;">Complete information about this customer
+                    request</p>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span class="status-pill {{ call.status|lower }}" style="padding: 6px 16px; font-size: 12px;">
                 {{ call.status }}
             </span>
-        </p>
-    </div>
-
-    <div class="info-card">
-        <h3>Call Metadata</h3>
-        <p><b>Requested Time:</b> {{ call.time }}</p>
-        <p><b>Business:</b> {{ call.business }}</p>
-        <p><b>Service:</b> {{ call.service }}</p>
-        <p><b>Date:</b> {{ call.createdAt }}</p>
-    </div>
-
-</div>
-
-<!-- Conversation Timeline -->
-<div class="timeline-section">
-    <h3>Conversation Timeline</h3>
-
-    <div class="chat-box">
-        {% for msg in call.conversation %}
-            <div class="chat user">
-                <div class="bubble">
-                    <b>User:</b> {{ msg.user }}
-                </div>
-            </div>
-
-            <div class="chat agent">
-                <div class="bubble agent-bubble">
-                    <b>Agent:</b> {{ msg.agent }}
-                </div>
-            </div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- Transcript and Summary -->
-<div class="details-grid">
-
-    <div class="info-card">
-        <h3>Full Call Transcript</h3>
-        <div class="transcript">
-            {{ call.call_transcript }}
         </div>
     </div>
 
-    <div class="info-card">
-        <h3>AI Call Summary</h3>
-        <div class="summary">
-            {{ call.call_summary }}
+    <!-- ===== MAIN CONTENT GRID ===== -->
+    <div class="details-grid-layout" style="display: grid; grid-template-columns: 1fr 350px; gap: 24px;">
+
+        <!-- LEFT COLUMN: Primary Details -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+
+            <!-- PART 2: CUSTOMER CARD -->
+            <div class="card"
+                style="padding: 24px; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="display: flex; gap: 20px; align-items: center;">
+                        <div class="customer-avatar">
+                            {{ call.name[0]|upper if call.name else '?' }}
+                        </div>
+                        <div>
+                            <h2 style="font-size: 20px; font-weight: 700; color: #f8fafc; margin: 0;">{{ call.name }}
+                            </h2>
+                            <p style="font-size: 15px; color: #00e5ff; font-weight: 600; margin: 4px 0 0 0;">
+                                <i class="fa fa-phone" style="font-size: 12px; margin-right: 4px;"></i> {{ call.phone }}
+                            </p>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <p style="font-size: 13px; color: #64748b; margin: 0;">Email Address</p>
+                        <p style="font-size: 14px; color: #f8fafc; font-weight: 500; margin: 4px 0 0 0;">{{ call.email
+                            if call.email else '—' }}</p>
+                    </div>
+                </div>
+
+                <div style="height: 1px; background: #1e293b; margin: 24px 0;"></div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div>
+                        <p
+                            style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px;">
+                            Business Name</p>
+                        <p style="font-size: 15px; color: #f8fafc; font-weight: 600; margin: 0;">{{ call.business if
+                            call.business else '—' }}</p>
+                    </div>
+                    <div>
+                        <p
+                            style="font-size: 11px; color: #64748b; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; margin-bottom: 4px;">
+                            Source Application</p>
+                        <p style="font-size: 15px; color: #00e5ff; font-weight: 600; margin: 0;">{{ call.app_name if
+                            call.app_name else (call.service if call.service else '—') }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PART 5: CONVERSATION TIMELINE -->
+            <div class="card"
+                style="padding: 24px; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px;">
+                <h3
+                    style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 0 0 20px 0; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa fa-comments" style="color: #00e5ff;"></i> Conversation Timeline
+                </h3>
+
+                <div class="timeline-container">
+                    {% if call.conversation %}
+                    {% for msg in call.conversation %}
+                    {% if msg.user %}
+                    <div class="timeline-item user">
+                        <div class="timeline-bubble">
+                            {{ msg.user }}
+                            <div class="bubble-meta">User</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if msg.agent %}
+                    <div class="timeline-item agent">
+                        <div class="timeline-bubble">
+                            {{ msg.agent }}
+                            <div class="bubble-meta">Agent</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    {% else %}
+                    <div style="text-align: center; padding: 40px 0; color: #475569;">
+                        <i class="fa fa-comment-slash"
+                            style="font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.5;"></i>
+                        No conversation logs available
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- TRANSCRIPT & SUMMARY -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+                <div class="card"
+                    style="padding: 20px; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px;">
+                    <h4 style="font-size: 14px; font-weight: 700; color: #f8fafc; margin: 0 0 16px 0; color: #00e5ff;">
+                        Full Transcript</h4>
+                    <div
+                        style="font-size: 13px; line-height: 1.6; color: #94a3b8; max-height: 300px; overflow-y: auto; padding-right: 8px;">
+                        {{ call.call_transcript if call.call_transcript else 'No transcript available.' }}
+                    </div>
+                </div>
+                <div class="card"
+                    style="padding: 20px; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px;">
+                    <h4 style="font-size: 14px; font-weight: 700; color: #f8fafc; margin: 0 0 16px 0; color: #22c55e;">
+                        AI Call Summary</h4>
+                    <div
+                        style="font-size: 13px; line-height: 1.6; color: #94a3b8; max-height: 300px; overflow-y: auto; padding-right: 8px;">
+                        {{ call.call_summary if call.call_summary else 'No summary generated for this call.' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Metadata & Actions -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+
+            <!-- PART 4: STATUS & ACTIONS -->
+            <div class="card"
+                style="padding: 24px; background: #1e293b; border: 1px solid #334155; border-radius: 16px;">
+                <h3
+                    style="font-size: 14px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin: 0 0 16px 0; letter-spacing: 0.05em;">
+                    Status Control</h3>
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <span class="status-pill {{ call.status|lower }}"
+                        style="padding: 10px 24px; font-size: 16px; border-radius: 30px;">
+                        {{ call.status }}
+                    </span>
+                </div>
+
+                {% if session.get('role') == 'ADMIN' %}
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    {% if call.status == 'PENDING' %}
+                    <a href="/approve/{{ call._id|string }}" class="btn-action approve">
+                        <i class="fa fa-check"></i> Approve Request
+                    </a>
+                    <a href="/reject/{{ call._id|string }}" class="btn-action reject">
+                        <i class="fa fa-times"></i> Reject Request
+                    </a>
+                    {% else %}
+                    <div
+                        style="background: rgba(255,255,255,0.03); color: #64748b; padding: 16px; border-radius: 12px; font-size: 13px; font-weight: 600; text-align: center; border: 1px dashed #334155;">
+                        This request has been processed
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div
+                    style="background: rgba(255,255,255,0.03); color: #94a3b8; padding: 16px; border-radius: 12px; font-size: 13px; text-align: center; line-height: 1.5;">
+                    Your request is currently being reviewed by our team.
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- PART 3: METADATA CARD -->
+            <div class="card"
+                style="padding: 24px; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px;">
+                <h3
+                    style="font-size: 14px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin: 0 0 20px 0; letter-spacing: 0.05em;">
+                    Request Metadata</h3>
+
+                <div class="metadata-list">
+                    <div class="meta-item">
+                        <span class="meta-label">Requested Time</span>
+                        <span class="meta-value">{{ call.time if call.time else '—' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Created At</span>
+                        <span class="meta-value">{{ call.created_at if call.created_at else '—' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Service Type</span>
+                        <span class="meta-value">{{ call.service if call.service else '—' }}</span>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Request Source</span>
+                        <span class="meta-value" style="color: #00e5ff;">Public Web Form</span>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
-
 </div>
+
+<style>
+    .customer-avatar {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #00e5ff 0%, #0072ff 100%);
+        color: #020617;
+        font-size: 24px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 16px;
+        box-shadow: 0 8px 16px rgba(0, 229, 255, 0.2);
+    }
+
+    .timeline-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        position: relative;
+        padding-left: 20px;
+    }
+
+    .timeline-container::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #1e293b;
+    }
+
+    .timeline-item {
+        display: flex;
+        position: relative;
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -24px;
+        top: 12px;
+        width: 10px;
+        height: 10px;
+        background: #1e293b;
+        border: 2px solid #00e5ff;
+        border-radius: 50%;
+        z-index: 1;
+    }
+
+    .timeline-bubble {
+        padding: 14px 18px;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.5;
+        position: relative;
+        max-width: 85%;
+    }
+
+    .timeline-item.user .timeline-bubble {
+        background: #1e293b;
+        color: #f8fafc;
+        border: 1px solid #334155;
+    }
+
+    .timeline-item.agent .timeline-bubble {
+        background: rgba(0, 229, 255, 0.1);
+        color: #f8fafc;
+        border: 1px solid rgba(0, 229, 255, 0.2);
+    }
+
+    .bubble-meta {
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-top: 6px;
+        letter-spacing: 0.1em;
+        opacity: 0.6;
+    }
+
+    .metadata-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .meta-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .meta-label {
+        font-size: 11px;
+        color: #64748b;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .meta-value {
+        font-size: 14px;
+        color: #f8fafc;
+        font-weight: 500;
+    }
+
+    .status-pill {
+        border-radius: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-pill.pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .status-pill.approved {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+        border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .status-pill.rejected {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-action {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 12px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-action.approve {
+        background: #22c55e;
+        color: #020617;
+    }
+
+    .btn-action.approve:hover {
+        background: #16a34a;
+        transform: translateY(-2px);
+    }
+
+    .btn-action.reject {
+        background: #ef4444;
+        color: #f8fafc;
+    }
+
+    .btn-action.reject:hover {
+        background: #dc2626;
+        transform: translateY(-2px);
+    }
+
+    .btn-micro {
+        background: #0f172a;
+        border: 1px solid #1e293b;
+        color: #94a3b8;
+        transition: all 0.2s;
+    }
+
+    .btn-micro:hover {
+        border-color: #00e5ff;
+        color: #00e5ff;
+        background: rgba(0, 229, 255, 0.05);
+    }
+
+    @media (max-width: 1024px) {
+        .details-grid-layout {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 
 {% endblock %}

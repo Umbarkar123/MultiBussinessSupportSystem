@@ -6,29 +6,33 @@
     <h2>{{app_name}} Submissions</h2>
 
     {% if submissions|length == 0 %}
-        <div class="empty-box">
-            No submissions yet
-        </div>
+    <div class="empty-box">
+        No submissions yet
+    </div>
     {% else %}
 
     <table class="sub-table">
         <thead>
             <tr>
                 <th>Name</th>
-                <th>Email</th>
-                <th>Number</th>
-                <th>Address</th>
-                <th>Date</th>
+                <th>Phone</th>
+                <th>Time (Pref)</th>
+                <th>Status</th>
+                <th>Submitted At</th>
             </tr>
         </thead>
 
         <tbody>
             {% for s in submissions %}
             <tr>
-                <td>{{ s.name }}</td>
-                <td>{{ s.email }}</td>
-                <td>{{ s.number }}</td>
-                <td>{{ s.address }}</td>
+                <td>{{ s.name or '—' }}</td>
+                <td>{{ s.phone or '—' }}</td>
+                <td>{{ s.time or '—' }}</td>
+                <td>
+                    <span class="status-pill {{ s.status | upper }}">
+                        {{ s.status | title }}
+                    </span>
+                </td>
                 <td>{{ s.created_at.strftime("%d %b %Y %I:%M %p") if s.created_at }}</td>
             </tr>
             {% endfor %}
@@ -41,44 +45,42 @@
 
 
 <style>
+    .page-wrapper {
+        padding: 30px;
+        color: white;
+    }
 
-.page-wrapper{
-    padding:30px;
-    color:white;
-}
+    .sub-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #0f2532;
+        border-radius: 10px;
+        overflow: hidden;
+    }
 
-.sub-table{
-    width:100%;
-    border-collapse:collapse;
-    background:#0f2532;
-    border-radius:10px;
-    overflow:hidden;
-}
+    .sub-table th {
+        text-align: left;
+        padding: 12px;
+        background: #132f40;
+        font-weight: 600;
+    }
 
-.sub-table th{
-    text-align:left;
-    padding:12px;
-    background:#132f40;
-    font-weight:600;
-}
+    .sub-table td {
+        padding: 12px;
+        border-top: 1px solid #1c3344;
+        font-size: 14px;
+    }
 
-.sub-table td{
-    padding:12px;
-    border-top:1px solid #1c3344;
-    font-size:14px;
-}
+    .sub-table tr:hover {
+        background: #0b1f2c;
+    }
 
-.sub-table tr:hover{
-    background:#0b1f2c;
-}
-
-.empty-box{
-    padding:40px;
-    text-align:center;
-    background:#0f2532;
-    border-radius:10px;
-}
-
+    .empty-box {
+        padding: 40px;
+        text-align: center;
+        background: #0f2532;
+        border-radius: 10px;
+    }
 </style>
 
 {% endblock %}

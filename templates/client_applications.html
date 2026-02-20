@@ -1,216 +1,142 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h2 class="page-title">Applications</h2>
+<div class="header" style="margin-bottom: 24px;">
+    <h1>Applications</h1>
+    <p style="color: var(--text-dim); font-size: 14px;">Manage and monitor your AI-integrated business applications.</p>
+</div>
+
+<!-- TOP SUMMARY STRIP -->
+<div class="apps-summary-strip">
+    <div class="summary-box highlight">
+        <div class="label">Total Applications</div>
+        <div class="value">{{ (default_apps|length) + (client_apps|length) }}</div>
+    </div>
+    <div class="summary-box">
+        <div class="label">Active (Live)</div>
+        <div class="value" style="color: var(--success);">{{ (default_apps|length) + (client_apps|length or 0) }}</div>
+    </div>
+    <div class="summary-box">
+        <div class="label">Inactive</div>
+        <div class="value">0</div>
+    </div>
+    <div class="summary-box">
+        <div class="label">Total Submissions</div>
+        {% set total_subs = 0 %}
+        {% for app in client_apps %}{% set total_subs = total_subs + (app.submissions or 0) %}{% endfor %}
+        <div class="value">{{ total_subs }}</div>
+    </div>
+</div>
 
 <!-- TOPBAR -->
-<div class="apps-topbar">
-    <input class="search" placeholder="Search applications...">
+<div class="apps-topbar" style="display: flex; gap: 12px; margin-bottom: 24px; align-items: center;">
+    <div style="flex: 1; position: relative;">
+        <i class="fa fa-search"
+            style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 12px;"></i>
+        <input class="search" placeholder="Search applications..."
+            style="width: 100%; padding-left: 36px; height: 38px; background: var(--bg-input); border: 1px solid var(--border-color); color: var(--text-bright); border-radius: var(--radius-sm);">
+    </div>
 
-    <select class="select">
+    <select class="select"
+        style="height: 38px; background: var(--bg-input); color: var(--text-bright); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0 12px;">
         <option>Status: All</option>
         <option>Live</option>
-        <option>Draft</option>
-        <option>Paused</option>
-        <option>Archived</option>
+        <option>Inactive</option>
     </select>
 
-    <select class="select">
-        <option>Sort: Recent</option>
-        <option>Name</option>
-        <option>Most Submissions</option>
+    <select class="select"
+        style="height: 38px; background: var(--bg-input); color: var(--text-bright); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0 12px;">
+        <option>Sort: Recent Activity</option>
+        <option>Name (A-Z)</option>
+        <option>Submissions (High-Low)</option>
     </select>
 
-    <button class="create-btn" onclick="createApp()">+ Create Application</button>
+    <button class="btn-primary" onclick="createApp()" style="height: 38px; padding: 0 20px;">
+        <i class="fa fa-plus"></i> Create Application
+    </button>
 </div>
 
 <!-- GRID -->
 <div class="apps-grid">
 
-    <!-- 🔹 DEFAULT APPS (string list) -->
-    {% for app in default_apps %}
-    <div class="app-card">
-        <div class="card-head">
-            <h3>{{ app }}</h3>
-            <span class="status">Live</span>
-        </div>
-
-        <div class="card-meta">
-            <span>0 submissions</span>
-            <span>Updated today</span>
-        </div>
-
-        <div class="card-actions">
-            <a href="/client/application/{{app}}/dashboard" class="primary">Dashboard</a>
-            <a href="/client/application/{{app}}/open" class="secondary" target="_blank">Open Form</a>
-            <div class="more">⋮</div>
-        </div>
+    {% if not default_apps and not client_apps %}
+    <!-- EMPTY STATE -->
+    <div class="empty-state-card">
+        <i class="fa fa-layer-group"></i>
+        <h2>No applications created yet</h2>
+        <p>Start by creating your first application to integrate AI booking agents into your business.</p>
+        <button class="btn-primary" onclick="createApp()" style="margin-top: 10px;">
+            <i class="fa fa-plus"></i> Create First Application
+        </button>
     </div>
-    {% endfor %}
+    {% endif %}
 
 
-    <!-- 🔹 CLIENT APPS (object list) -->
+
+    <!-- 🔹 CLIENT APPS -->
     {% for app in client_apps %}
-    <div class="app-card">
-        <div class="card-head">
-            <h3>{{ app.app_name }}</h3>
-            <span class="status">Live</span>
+    <div class="app-card" onclick="window.location.href='/client/application/{{app.app_name}}/dashboard'">
+        <div class="app-card-head">
+            <h3><i class="fa fa-rocket"></i> {{ app.app_name }}</h3>
+            <div class="status-badge live">
+                <span class="app-status-dot"></span>
+                LIVE
+            </div>
         </div>
 
-        <div class="card-meta">
-            <span>{{ app.submissions or 0 }} submissions</span>
-            <span>
-                {{ app.created_at.strftime("%d %b") if app.created_at else "Recently" }}
-            </span>
+        <div class="app-meta-grid">
+            <div class="app-meta-item">
+                <label>Submissions</label>
+                <span>{{ app.submissions or 0 }} total</span>
+            </div>
+            <div class="app-meta-item">
+                <label>Last Activity</label>
+                <span>Recently</span>
+            </div>
+            <div class="app-meta-item">
+                <label>Created On</label>
+                <span>{{ app.created_at.strftime("%d %b %Y") if app.created_at else "Recently" }}</span>
+            </div>
+            <div class="app-meta-item">
+                <label>Integration</label>
+                <span style="color: var(--primary);">Pending</span>
+            </div>
         </div>
 
-        <div class="card-actions">
-            <a href="/client/application/{{app.app_name}}/dashboard" class="primary">Dashboard</a>
-            <a href="/client/application/{{app.app_name}}/open" class="secondary" target="_blank">Open Form</a>
-            <div class="more">⋮</div>
+        <div class="app-card-actions">
+            <a href="/client/application/{{app.app_name}}/dashboard" class="btn-primary"
+                onclick="event.stopPropagation()">Dashboard</a>
+
+            {% if app.slug and app._id %}
+            <a href="/form/{{app._id}}/{{app.slug}}" class="btn-view" target="_blank"
+                onclick="event.stopPropagation()">View Form</a>
+            {% else %}
+            <!-- DYNAMIC URL FIX: Use client_id + app_name -->
+            <a href="/form/{{client.client_id}}/{{app.app_name}}" class="btn-view" target="_blank"
+                onclick="event.stopPropagation()">View Form</a>
+            {% endif %}
+
+            <div class="dots-menu" onclick="event.stopPropagation()">
+                <div class="dots-trigger">⋮</div>
+                <div class="dropdown-content">
+                    <a href="/client/application/{{app.app_name}}"><i class="fa fa-edit"></i> Edit Form</a>
+                    <a href="#"
+                        onclick="copyFormLink('{{client.client_id}}', '{{app._id}}', '{{app.slug}}', '{{app.app_name}}')"><i
+                            class="fa fa-copy"></i> Copy Link</a>
+                    <a href="/client/application/{{app.app_name}}/preview" target="_blank"><i class="fa fa-eye"></i>
+                        Preview Form</a>
+                    <div class="divider"></div>
+                    <a href="#"><i class="fa fa-chart-line"></i> Analytics</a>
+                    <button><i class="fa fa-pause"></i> Disable</button>
+                    <button class="delete" onclick="deleteApp('{{app.app_name}}')"><i class="fa fa-trash"></i> Delete
+                        App</button>
+                </div>
+            </div>
         </div>
     </div>
     {% endfor %}
 
 </div>
-
-
-<style>
-    /* Title */
-    .page-title {
-        margin: 0 0 14px 0;
-        font-size: 22px;
-        font-weight: 600;
-    }
-
-    /* Topbar */
-    .apps-topbar {
-        display: flex;
-        gap: 12px;
-        margin: 12px 0 20px 0;
-    }
-
-    .search,
-    .select {
-        height: 36px;
-        border-radius: 6px;
-        border: 1px solid #1c3344;
-        background: #0f2230;
-        color: #cfe3f5;
-        padding: 0 12px;
-        font-size: 13px;
-    }
-
-    .search {
-        flex: 1
-    }
-
-    .create-btn {
-        height: 36px;
-        padding: 0 16px;
-        border: none;
-        border-radius: 6px;
-        background: #1f8fff;
-        color: white;
-        font-weight: 600;
-        cursor: pointer;
-    }
-
-    /* Grid */
-    .apps-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 16px;
-    }
-
-    /* Card */
-    .app-card {
-        background: #0f2230;
-        border: 1px solid #1c3344;
-        border-radius: 10px;
-        padding: 16px;
-        transition: .2s;
-    }
-
-    .app-card:hover {
-        transform: translateY(-3px);
-    }
-
-    /* Head */
-    .card-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-
-    .card-head h3 {
-        margin: 0;
-        font-size: 15px;
-        font-weight: 600;
-    }
-
-    .status {
-        font-size: 12px;
-        color: #00c776;
-        font-weight: 600;
-    }
-
-    /* Meta */
-    .card-meta {
-        display: flex;
-        justify-content: space-between;
-        font-size: 12px;
-        color: #8fa6bc;
-        margin-bottom: 16px;
-    }
-
-    /* Actions */
-    .card-actions {
-        display: flex;
-        align-items: center;
-    }
-
-    /* Buttons */
-    .card-actions a {
-        height: 32px;
-        padding: 0 14px;
-        border-radius: 6px;
-        font-size: 13px;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    /* Primary */
-    .card-actions a.primary {
-        background: #1f8fff;
-        color: white;
-    }
-
-    /* Secondary */
-    .card-actions a.secondary {
-        background: #132b3a;
-        border: 1px solid #1c3344;
-        color: #cfe3f5;
-        margin-left: 8px;
-    }
-
-    .card-actions a.secondary:hover {
-        background: #1f8fff;
-        color: white;
-    }
-
-    /* More icon */
-    .more {
-        margin-left: auto;
-        font-size: 18px;
-        color: #8fa6bc;
-        cursor: pointer;
-    }
-</style>
-
 
 <script>
     function createApp() {
@@ -221,6 +147,29 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ app_name: name })
+        }).then(() => location.reload());
+    }
+
+    function copyFormLink(clientId, appId, slug, appName) {
+        let link = "";
+        if (clientId && appName) {
+            link = `${window.location.origin}/form/${clientId}/${appName}`;
+        } else if (appId && slug) {
+            link = `${window.location.origin}/form/${appId}/${slug}`;
+        } else {
+            link = `${window.location.origin}/form/${appName}`;
+        }
+
+        navigator.clipboard.writeText(link).then(() => {
+            alert("Public form link copied to clipboard!");
+        });
+    }
+
+    function deleteApp(appName) {
+        if (!confirm(`Are you sure you want to delete "${appName}"? This will also delete its form and submissions.`)) return;
+
+        fetch(`/client/application/${appName}/delete`, {
+            method: "DELETE"
         }).then(() => location.reload());
     }
 </script>

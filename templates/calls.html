@@ -1,296 +1,366 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="page-header">
-    <h1>Call History</h1>
-    <p style="color:#9aa4b2">All user call requests received by your system</p>
-</div>
+<div class="call-history-wrap" style="padding: 24px; background: #020617; min-height: 100vh;">
 
-<!-- ===== FILTER TABS + SEARCH ===== -->
-<div class="top-controls">
-    <div class="tabs">
-        <button class="tab active" onclick="filterStatus('')">All</button>
-        <button class="tab" onclick="filterStatus('PENDING')">Pending</button>
-        <button class="tab" onclick="filterStatus('APPROVED')">Approved</button>
-        <button class="tab" onclick="filterStatus('REJECTED')">Rejected</button>
+    <!-- ===== PART 1: HEADER ===== -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
+        <div>
+            <h1 style="font-size: 24px; font-weight: 700; color: #f8fafc; margin: 0;">Call History</h1>
+            <p style="font-size: 14px; color: #64748b; margin: 4px 0 0 0;">All user call requests received by your
+                system</p>
+        </div>
+        <div style="display: flex; gap: 12px;">
+            <div class="date-filter">
+                <select
+                    style="background: #0f172a; border: 1px solid #1e293b; color: #f8fafc; padding: 8px 16px; border-radius: 8px; font-size: 13px; outline: none; cursor: pointer;">
+                    <option>Last 7 days</option>
+                    <option>Last 30 days</option>
+                    <option selected>All Time</option>
+                </select>
+            </div>
+            <button class="btn-export"
+                style="background: #0f172a; border: 1px solid #1e293b; color: #f8fafc; padding: 8px 16px; border-radius: 8px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s;">
+                <i class="fa fa-download"></i> Export CSV
+            </button>
+        </div>
     </div>
 
-    <div class="calls-search">
-        <input type="text" id="callSearch" placeholder="Search by name or phone...">
+    <!-- ===== PART 8: ADMIN SUMMARY (LIGHT) ===== -->
+    {% set ns = namespace(total=0, pending=0, approved=0, rejected=0) %}
+    {% for c in calls %}
+    {% set ns.total = ns.total + 1 %}
+    {% if c.status == 'PENDING' %}{% set ns.pending = ns.pending + 1 %}{% endif %}
+    {% if c.status == 'APPROVED' %}{% set ns.approved = ns.approved + 1 %}{% endif %}
+    {% if c.status == 'REJECTED' %}{% set ns.rejected = ns.rejected + 1 %}{% endif %}
+    {% endfor %}
+
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+        <div class="stat-mini">
+            <div class="stat-label">Total Calls</div>
+            <div class="stat-val">{{ ns.total }}</div>
+        </div>
+        <div class="stat-mini">
+            <div class="stat-label">Pending</div>
+            <div class="stat-val" style="color: #f59e0b;">{{ ns.pending }}</div>
+        </div>
+        <div class="stat-mini">
+            <div class="stat-label">Approved</div>
+            <div class="stat-val" style="color: #22c55e;">{{ ns.approved }}</div>
+        </div>
+        <div class="stat-mini">
+            <div class="stat-label">Rejected</div>
+            <div class="stat-val" style="color: #ef4444;">{{ ns.rejected }}</div>
+        </div>
     </div>
-</div>
 
-<!-- ===== TABLE CARD ===== -->
-<div class="card table-card">
-    <h2>User Call Requests</h2>
+    <!-- ===== PART 2 & 3: FILTER TABS + SEARCH ===== -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 20px;">
+        <div class="pill-tabs"
+            style="display: flex; background: #0f172a; padding: 4px; border-radius: 10px; border: 1px solid #1e293b;">
+            <button class="pill-btn active" onclick="filterStatus('', event)">All <span class="badge">{{ ns.total
+                    }}</span></button>
+            <button class="pill-btn" onclick="filterStatus('PENDING', event)">Pending <span class="badge">{{ ns.pending
+                    }}</span></button>
+            <button class="pill-btn" onclick="filterStatus('APPROVED', event)">Approved <span class="badge">{{
+                    ns.approved }}</span></button>
+            <button class="pill-btn" onclick="filterStatus('REJECTED', event)">Rejected <span class="badge">{{
+                    ns.rejected }}</span></button>
+        </div>
 
-    <table class="styled-table" id="dataTable">
-        <thead>
-            <tr>
-                <th>User</th>
-                <th>Phone</th>
-                <th>Requested Time</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th style="text-align:right">Actions</th>
-            </tr>
-        </thead>
+        <div style="position: relative; flex: 1; max-width: 400px;">
+            <i class="fa fa-search"
+                style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 14px;"></i>
+            <input type="text" id="callSearch" placeholder="Search by name, phone, application or status..."
+                style="width: 100%; background: #0f172a; border: 1px solid #1e293b; color: #f8fafc; padding: 10px 14px 10px 40px; border-radius: 10px; font-size: 13px; outline: none; transition: border-color 0.2s;">
+        </div>
+    </div>
 
-        <tbody>
-            {% for call in calls %}
-            <tr class="{{ call.status }}" onclick="toggleCallDetails('{{call._id}}')" style="cursor: pointer;">
-                <td><strong>{{ call.name }}</strong></td>
-                <td>{{ call.phone }}</td>
-                <td>{{ call.time }}</td>
-                <td><span class="status {{ call.status }}">{{ call.status }}</span></td>
-                <td>{{ call.createdAt }}</td>
-                <td style="text-align:right" onclick="event.stopPropagation();">
-                    <a href="/call/{{ call._id }}" class="btn-view">👁 View</a>
-                </td>
-            </tr>
+    <!-- ===== PART 4 & 5: TABLE ===== -->
+    <div class="card"
+        style="padding: 0; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden;">
+        <div class="table-responsive">
+            <table class="saas-table" id="dataTable">
+                <thead>
+                    <tr>
+                        <th style="padding: 14px 20px;">User</th>
+                        <th style="padding: 14px 20px;">Phone</th>
+                        <th style="padding: 14px 20px;">Application</th>
+                        <th style="padding: 14px 20px;">Requested Time</th>
+                        <th style="padding: 14px 20px; text-align: center;">Status</th>
+                        <th style="padding: 14px 20px;">Date</th>
+                        <th style="padding: 14px 20px; text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for call in calls %}
+                    <tr class="call-row {{ call.status }}" onclick="toggleCallDetails('{{call._id}}')">
+                        <td style="padding: 12px 20px;">
+                            <strong style="color: #f8fafc; font-size: 14px;">{{ call.name }}</strong>
+                        </td>
+                        <td style="padding: 12px 20px; color: #94a3b8; font-size: 13px;">{{ call.phone }}</td>
+                        <td style="padding: 12px 20px;">
+                            <span class="app-tag">{{ call.app_name if call.app_name else '—' }}</span>
+                        </td>
+                        <td style="padding: 12px 20px; color: #f8fafc; font-size: 13px;">{{ call.time }}</td>
+                        <td style="padding: 12px 20px; text-align: center;">
+                            <span class="status-pill {{ call.status|lower }}">{{ call.status }}</span>
+                        </td>
+                        <td style="padding: 12px 20px; color: #64748b; font-size: 12px;">{{ call.created_at }}</td>
+                        <td style="padding: 12px 20px; text-align: right;" onclick="event.stopPropagation();">
+                            <a href="/call/{{ call._id }}" class="btn-micro">
+                                <i class="fa fa-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
 
-            <!-- Expandable Details Row -->
-            <tr id="call-details-{{call._id}}" class="details-row" style="display: none;">
-                <td colspan="6">
-                    <div class="details-content">
-                        <h4>📋 All Form Data</h4>
-                        <div class="form-data-grid">
-                            {% if call.data %}
-                            {% for key, value in call.data.items() %}
-                            <div class="data-item">
-                                <span class="data-label">{{key}}:</span>
-                                <span class="data-value">{{value}}</span>
+                    <!-- Expandable Details Row -->
+                    <tr id="call-details-{{call._id}}" class="details-row" style="display: none;">
+                        <td colspan="7" style="padding: 0; background: rgba(0,0,0,0.2);">
+                            <div style="padding: 20px; border-top: 1px solid #1e293b;">
+                                <h4
+                                    style="margin: 0 0 16px 0; font-size: 13px; color: #00e5ff; display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa fa-list-ul"></i> Extended Form Data
+                                </h4>
+                                <div
+                                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">
+                                    {% if call.data %}
+                                    {% for key, value in call.data.items() %}
+                                    <div
+                                        style="background: #1e293b; padding: 10px; border-radius: 8px; border: 1px solid #334155;">
+                                        <span
+                                            style="display: block; font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">{{key}}:</span>
+                                        <span style="display: block; font-size: 13px; color: #f8fafc;">{{value}}</span>
+                                    </div>
+                                    {% endfor %}
+                                    {% else %}
+                                    <p style="color: #64748b; font-size: 13px; margin: 0;">No additional payload found
+                                        for this call.</p>
+                                    {% endif %}
+                                </div>
                             </div>
-                            {% endfor %}
-                            {% else %}
-                            <p style="color: #94a3b8;">No additional form data</p>
-                            {% endif %}
-                        </div>
-                        {% if call.app_name %}
-                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #1e3a4c;">
-                            <span class="data-label">Application:</span>
-                            <span class="data-value">{{ call.app_name }}</span>
-                        </div>
-                        {% endif %}
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ===== PART 9: PAGINATION ===== -->
+        <div
+            style="padding: 16px 20px; background: rgba(0,0,0,0.1); border-top: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 12px; color: #64748b;">
+                Showing <span style="color: #f8fafc; font-weight: 600;">1</span> to <span
+                    style="color: #f8fafc; font-weight: 600;">{{ calls|length }}</span> of <span
+                    style="color: #f8fafc; font-weight: 600;">{{ ns.total }}</span> requests
+            </div>
+            <div style="display: flex; gap: 6px;">
+                <button class="btn-micro" disabled>Previous</button>
+                <button class="btn-micro" disabled>Next</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
-    /* ===== SAME SAAS THEME AS DASHBOARD ===== */
-
-    .top-controls {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin: 6px 0 12px 0;
+    .stat-mini {
+        background: #0f172a;
+        border: 1px solid #1e293b;
+        padding: 16px;
+        border-radius: 12px;
     }
 
-    /* Tabs */
-    .tabs {
-        display: flex;
-        gap: 10px;
+    .stat-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 6px;
     }
 
-    .tab {
-        padding: 8px 14px;
-        border-radius: 8px;
-        background: linear-gradient(145deg, #0e2230, #0b1720);
-        border: 1px solid #1e3a4c;
-        color: #cbd5e1;
-        cursor: pointer;
-        font-size: 13px;
+    .stat-val {
+        font-size: 24px;
+        font-weight: 700;
+        color: #f8fafc;
     }
 
-    .tab.active {
-        background: #facc15;
-        color: #000;
+    .pill-btn {
+        background: transparent;
         border: none;
-    }
-
-    /* Search */
-    .calls-search input {
-        width: 260px;
-        padding: 8px 12px;
+        color: #64748b;
+        padding: 8px 16px;
         border-radius: 8px;
-        border: 1px solid #1e3a4c;
-        background: linear-gradient(145deg, #0e2230, #0b1720);
-        color: #e2e8f0;
         font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
     }
 
-    .calls-search input:focus {
-        border: 1px solid #38bdf8;
-        outline: none;
+    .pill-btn:hover {
+        color: #f8fafc;
     }
 
-    /* ===== CARD SAME AS DASHBOARD BLOCK ===== */
-    .table-card {
-        margin-top: 10px;
-        border-radius: 14px;
-        padding: 22px;
-        background: linear-gradient(145deg, #0f2532, #0b1720);
-        border: 1px solid #1e3a4c;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    .pill-btn.active {
+        background: #1e293b;
+        color: #f8fafc;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
-    /* ===== TABLE SAME AS USER FORM REQUESTS ===== */
-    .styled-table {
+    .pill-btn .badge {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+    }
+
+    .saas-table {
         width: 100%;
         border-collapse: collapse;
-        table-layout: fixed;
     }
 
-    .styled-table th {
-        background: rgba(255, 255, 255, 0.03);
-        color: #94a3b8;
-        font-weight: 600;
-        font-size: 12px;
-        letter-spacing: 0.5px;
-    }
-
-    .styled-table th,
-    .styled-table td {
-        padding: 14px 12px;
-        border-bottom: 1px solid #1e3a4c;
-        font-size: 13px;
-        color: #e2e8f0;
-        text-align: left;
-        /* Ensure alignment */
-    }
-
-    .styled-table tbody tr:hover {
-        background: rgba(56, 189, 248, 0.06);
-    }
-
-    /* column widths */
-    .styled-table th:nth-child(1),
-    .styled-table td:nth-child(1) {
-        width: 20%;
-    }
-
-    .styled-table th:nth-child(2),
-    .styled-table td:nth-child(2) {
-        width: 18%;
-    }
-
-    .styled-table th:nth-child(3),
-    .styled-table td:nth-child(3) {
-        width: 16%;
-    }
-
-    .styled-table th:nth-child(4),
-    .styled-table td:nth-child(4) {
-        width: 14%;
-    }
-
-    .styled-table th:nth-child(5),
-    .styled-table td:nth-child(5) {
-        width: 20%;
-    }
-
-    .styled-table th:nth-child(6),
-    .styled-table td:nth-child(6) {
-        width: 12%;
-        text-align: right;
-    }
-
-    /* Expandable Details Styling */
-    .details-row {
-        background: #0a1219 !important;
-    }
-
-    .details-content {
-        padding: 20px;
-        background: linear-gradient(145deg, #0e2230, #0b1720);
-        border-radius: 8px;
-        border: 1px solid #1e3a4c;
-    }
-
-    .details-content h4 {
-        margin: 0 0 16px 0;
-        color: #e6edf3;
-        font-size: 16px;
-    }
-
-    .form-data-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 12px;
-    }
-
-    .data-item {
-        background: #0b1720;
-        padding: 10px 14px;
-        border-radius: 6px;
-        border: 1px solid #1c3344;
-    }
-
-    .data-label {
-        display: block;
+    .saas-table th {
+        background: rgba(255, 255, 255, 0.02);
+        color: #64748b;
         font-size: 11px;
-        color: #94a3b8;
+        font-weight: 700;
         text-transform: uppercase;
-        margin-bottom: 4px;
+        letter-spacing: 0.05em;
+        text-align: left;
+        border-bottom: 1px solid #1e293b;
+    }
+
+    .call-row {
+        transition: background 0.2s;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        cursor: pointer;
+    }
+
+    .call-row:nth-child(even) {
+        background: rgba(255, 255, 255, 0.01);
+    }
+
+    .call-row:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .app-tag {
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
         font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
-    .data-value {
-        display: block;
-        font-size: 14px;
-        color: #e6edf3;
-        font-weight: 500;
+    .status-pill {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
     }
 
-    /* STATUS BADGES — same colors */
-    .status {
+    .status-pill.pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .status-pill.approved {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+    }
+
+    .status-pill.rejected {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    .btn-micro {
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        border: 1px solid #1e293b;
         padding: 6px 12px;
         border-radius: 6px;
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
     }
 
-    .status.APPROVED {
-        background: #22c55e;
-        color: white;
+    .btn-micro:hover {
+        border-color: #334155;
+        background: rgba(255, 255, 255, 0.08);
+        color: #f8fafc;
     }
 
-    .status.REJECTED {
-        background: #ef4444;
-        color: white;
+    .btn-export:hover {
+        background: #1e293b !important;
+        border-color: #334155 !important;
+    }
+
+    @media (max-width: 1024px) {
+        .table-responsive {
+            overflow-x: auto;
+        }
     }
 </style>
 
 <script>
     function toggleCallDetails(id) {
         const detailsRow = document.getElementById('call-details-' + id);
-        if (detailsRow.style.display === 'none') {
-            detailsRow.style.display = 'table-row';
+        detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
+
+        // Add highlight to parent row
+        const parentRow = detailsRow.previousElementSibling;
+        if (detailsRow.style.display === 'table-row') {
+            parentRow.style.background = 'rgba(0, 229, 255, 0.03)';
         } else {
-            detailsRow.style.display = 'none';
+            parentRow.style.background = '';
         }
     }
 
-    // Status filter
     function filterStatus(status, event) {
-        document.querySelectorAll("#dataTable tbody tr").forEach(row => {
-            row.style.display =
-                (status === "" || row.className === status) ? "" : "none";
+        // Prevent event bubbling if necessary
+        const rows = document.querySelectorAll("#dataTable tbody tr.call-row");
+        const detailRows = document.querySelectorAll("#dataTable tbody tr.details-row");
+
+        detailRows.forEach(dr => dr.style.display = 'none');
+
+        rows.forEach(row => {
+            if (status === "" || row.classList.contains(status)) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
         });
 
-        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-        event.target.classList.add("active");
+        // Update active pill
+        document.querySelectorAll(".pill-btn").forEach(btn => btn.classList.remove("active"));
+        if (event) {
+            event.currentTarget.classList.add("active");
+        }
     }
 
-    // Search filter
-    document.getElementById("callSearch").addEventListener("keyup", function () {
+    document.getElementById("callSearch").addEventListener("input", function () {
         let value = this.value.toLowerCase();
-        document.querySelectorAll("#dataTable tbody tr").forEach(row => {
-            row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
+        const rows = document.querySelectorAll("#dataTable tbody tr.call-row");
+        const detailRows = document.querySelectorAll("#dataTable tbody tr.details-row");
+
+        detailRows.forEach(dr => dr.style.display = 'none');
+
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(value) ? "" : "none";
         });
     });
 </script>

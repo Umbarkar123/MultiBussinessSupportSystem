@@ -1,9 +1,10 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="page-header">
+<div class="header">
     <h1>API & Integration</h1>
-    <div class="sub">Use API key and HTML form to integrate into your website</div>
+    <p style="color: var(--text-dim); font-size: 13px;">Use your API key and HTML form to integrate ConnexHub into your
+        website or application.</p>
 </div>
 
 {% for app in apps %}
@@ -16,232 +17,52 @@
         </div>
 
         <a href="#" class="action-btn" onclick="downloadHTML('{{ app.app_name }}'); return false;">
-            Download HTML
+            <i class="fa fa-download" style="margin-right: 4px;"></i> Download HTML
         </a>
     </div>
 
-    <!-- API KEY -->
+    <!-- API KEY SECTION -->
     <div class="api-box">
-        <label>API Key</label>
-
+        <label>API KEY</label>
         <div class="api-key-row">
             <input id="api_{{ app.app_name }}" value="{{ app.api_key }}" readonly>
-
             <button class="btn-copy" onclick="copyApi('{{ app.app_name }}')">Copy</button>
-            <button class="btn-regen" onclick="regenerateKey('{{ app.app_name }}')">Regenerate</button>
+            <button class="btn-regen" onclick="regenerateKey('{{ app.app_name }}')">Regenerated</button>
             <button class="btn-revoke" onclick="revokeKey('{{ app.app_name }}')">Revoke</button>
         </div>
     </div>
 
-    <!-- HTML FORM -->
+    <!-- HTML FORM SECTION -->
     <div class="html-box">
         <label>Ready-to-use HTML Form</label>
-
-        <textarea id="html_{{ app.app_name }}" readonly>
-<form action="http://127.0.0.1:5000/api/submit/{{ app.api_key }}" method="POST">
-
+        <textarea id="html_{{ app.app_name }}" readonly><form action="http://127.0.0.1:5000/api/submit/{{ app.api_key }}" method="POST">
 {% for f in app.fields %}
-<label>{{ f.label }}</label>
-<input name="{{ f.name }}" placeholder="{{ f.label }}">
-<br><br>
+    <label>{{ f.label }}</label>
+    <input name="{{ f.name }}" placeholder="{{ f.label }}">
+    <br><br>
 {% endfor %}
-
-<button type="submit">Submit</button>
-</form>
-        </textarea>
-
-        <button class="copy-code" onclick="copyHTML('{{ app.app_name }}')">Copy Code</button>
+    <button type="submit">Submit</button>
+</form></textarea>
+        <button class="copy-code" onclick="copyHTML('{{ app.app_name }}')">
+            <i class="fa fa-copy" style="margin-right: 4px;"></i> Copy Code
+        </button>
     </div>
 
 </div>
 {% endfor %}
 
-
-
-<style>
-    /* ---------- PAGE HEADER ---------- */
-    .page-header {
-        margin-bottom: 18px;
-    }
-
-    .page-header h1 {
-        font-size: 24px;
-        font-weight: 600;
-        color: #e5e7eb;
-    }
-
-    .sub {
-        color: #94a3b8;
-        font-size: 14px;
-        margin-top: 4px;
-    }
-
-
-    /* ---------- CARD ---------- */
-    .integration-card {
-        background: #0b1220;
-        border: 1px solid #1f2a3a;
-        border-radius: 10px;
-        padding: 18px;
-        margin-bottom: 18px;
-        transition: 0.2s;
-    }
-
-    .integration-card:hover {
-        border-color: #334155;
-    }
-
-
-    /* ---------- TOP ---------- */
-    .integration-top {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-    }
-
-    .integration-top h3 {
-        font-size: 18px;
-        font-weight: 600;
-        color: #e2e8f0;
-    }
-
-    /* badge */
-    .badge {
-        background: #1e293b;
-        padding: 3px 10px;
-        border-radius: 5px;
-        font-size: 11px;
-        color: #cbd5f5;
-        margin-left: 10px;
-    }
-
-    /* download button */
-    .download-btn {
-        background: #3b82f6;
-        color: white;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 13px;
-        cursor: pointer;
-    }
-
-    .download-btn:hover {
-        background: #2563eb;
-    }
-
-
-    /* ---------- LABEL ---------- */
-    .api-box label,
-    .html-box label {
-        font-size: 13px;
-        color: #9aa4b2;
-        margin-bottom: 6px;
-        display: block;
-    }
-
-
-    /* ---------- API KEY ROW ---------- */
-    .api-key-row {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 12px;
-    }
-
-    .api-key-row input {
-        flex: 1;
-        background: #020617;
-        border: 1px solid #1f2a3a;
-        color: #e5e7eb;
-        padding: 8px 10px;
-        border-radius: 6px;
-        font-size: 13px;
-    }
-
-    /* buttons */
-    .api-key-row button {
-        border: none;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        cursor: pointer;
-        font-weight: 500;
-    }
-
-    /* button colors */
-    .btn-copy {
-        background: #22c55e;
-        color: white;
-    }
-
-    .btn-regen {
-        background: #f59e0b;
-        color: white;
-    }
-
-    .btn-revoke {
-        background: #ef4444;
-        color: white;
-    }
-
-    .btn-copy:hover {
-        background: #16a34a;
-    }
-
-    .btn-regen:hover {
-        background: #d97706;
-    }
-
-    .btn-revoke:hover {
-        background: #dc2626;
-    }
-
-
-    /* ---------- HTML CODE ---------- */
-    .html-box textarea {
-        width: 100%;
-        height: 170px;
-        background: #020617;
-        border: 1px solid #1f2a3a;
-        color: #e2e8f0;
-        padding: 10px;
-        border-radius: 6px;
-        font-family: monospace;
-        font-size: 12px;
-        resize: none;
-        line-height: 1.5;
-    }
-
-    /* copy code button */
-    .copy-code {
-        margin-top: 8px;
-        background: #eab308;
-        color: black;
-        border: none;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        cursor: pointer;
-    }
-
-    .copy-code:hover {
-        background: #ca8a04;
-    }
-</style>
-
 <script>
-
     function copyApi(app) {
         let val = document.getElementById("api_" + app).value;
         navigator.clipboard.writeText(val);
-        alert("API key copied");
+        // Using a more subtle notification would be better, but keeping functionality for now
+        showToast("API key copied to clipboard");
     }
 
     function copyHTML(app) {
         let val = document.getElementById("html_" + app).value;
         navigator.clipboard.writeText(val);
-        alert("HTML copied");
+        showToast("HTML form code copied to clipboard");
     }
 
     function downloadHTML(app) {
@@ -249,29 +70,35 @@
         let blob = new Blob([text], { type: "text/html" });
         let a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = app + "_form.html";
+        a.download = app.toLowerCase().replace(/\s+/g, '_') + "_form.html";
         a.click();
     }
 
     function regenerateKey(app) {
-        fetch("/regen_key/" + app)
-            .then(res => res.json())
-            .then(d => {
-                alert("New API Key Generated");
-                location.reload();
-            })
+        if (confirm("Are you sure you want to regenerate this API key? The old key will stop working immediately.")) {
+            fetch("/regen_key/" + app)
+                .then(res => res.json())
+                .then(d => {
+                    location.reload();
+                })
+        }
     }
 
     function revokeKey(app) {
-        fetch("/revoke_key/" + app)
-            .then(res => res.json())
-            .then(d => {
-                alert("API Key Revoked");
-                location.reload();
-            })
+        if (confirm("Are you sure you want to revoke this API key? This action cannot be undone.")) {
+            fetch("/revoke_key/" + app)
+                .then(res => res.json())
+                .then(d => {
+                    location.reload();
+                })
+        }
     }
 
+    function showToast(msg) {
+        // Simple fallback alert if toast is not implemented, 
+        // but we can assume the user wants a professional feel
+        alert(msg);
+    }
 </script>
-
 
 {% endblock %}

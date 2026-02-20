@@ -1,433 +1,346 @@
-
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="llm-wrapper">
+<div class="llm-wrapper" style="max-width: 1200px; margin: 0 auto; padding: 20px 40px;">
 
     <!-- BREADCRUMB -->
-    <div class="breadcrumb">
-        Applications &nbsp;|&nbsp; <span>LLM Settings</span>
+    <div class="breadcrumb"
+        style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;">
+        Applications &nbsp;/&nbsp; <span style="color: var(--primary);">AI Configuration Console</span>
     </div>
 
-    <!-- TITLE ROW -->
-    <div class="llm-title-row">
+    <!-- HEADER TITLE & CONTROLS -->
+    <div class="header-row"
+        style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
         <div>
-            <h1>LLM Settings</h1>
-            <p>Configure your custom prompts for AI call agents per application</p>
+            <h1 style="font-size: 26px; font-weight: 600; letter-spacing: -0.01em; margin: 0;">LLM Settings</h1>
+            <p style="color: var(--text-dim); font-size: 13px; margin-top: 2px;">Professional AI agent persona
+                management and behavioral tuning.</p>
         </div>
 
-       <div style="display:flex; align-items:center; gap:12px;">
-</div>
-    <!-- SELECT APPLICATION DROPDOWN -->
-    <select id="appSelect"
-            onchange="selectAppFromDropdown()"
-            style="padding:8px; border-radius:6px; width:180px; background:#0f2532; color:#fff; border:1px solid #1c3344;">
-        <option value="">Select App</option>
+        <!-- 1. TOP CONTROL BAR (Simplified) -->
+        <div class="minimal-toolbar" style="display: flex; align-items: center; gap: 16px;">
+            <!-- App Selector -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label
+                    style="font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase;">App:</label>
+                <select id="appSelect" onchange="selectAppFromDropdown()"
+                    style="height: 32px; background: rgba(255,255,255,0.03); color: var(--text-bright); border: 1px solid var(--border-color); padding: 0 10px; border-radius: 6px; font-size: 12px; min-width: 140px;">
+                    <option value="">Select App</option>
+                    {% for app in applications %}
+                    <option value="{{ app['app_name'] }}">{{ app['app_name'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        {% for app in applications %}
-            <option value="{{ app['app_name'] }}">{{ app['app_name'] }}</option>
-        {% endfor %}
-    </select>
+            <!-- Model Selector -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label
+                    style="font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase;">Model:</label>
+                <select id="modelSelect"
+                    style="height: 32px; background: rgba(255,255,255,0.03); color: var(--text-bright); border: 1px solid var(--border-color); padding: 0 10px; border-radius: 6px; font-size: 12px; min-width: 120px;">
+                    <option value="gpt-4">GPT-4 Turbo</option>
+                    <option value="gpt-3.5">GPT-3.5</option>
+                    <option value="deepseek">DeepSeek</option>
+                </select>
+            </div>
 
-    <!-- CREATE BUTTON -->
-    <button class="create-app-btn" onclick="createApp()">+ Create Application</button>
+            <!-- Status Toggle -->
+            <div
+                style="display: flex; align-items: center; gap: 10px; margin-left: 8px; padding-left: 16px; border-left: 1px solid rgba(255,255,255,0.05);">
+                <span style="font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">AI
+                    Active</span>
+                <label class="switch">
+                    <input type="checkbox" id="enableToggle" onchange="updateToggleStyle(this)">
+                    <span class="slider round"></span>
+                </label>
+            </div>
 
-    <!-- TOGGLE -->
-    <div class="toggle-area">
-        <label>Enable LLM Agent</label>
-        <input type="checkbox" id="enableToggle">
+            <button class="btn-primary" onclick="createApp()"
+                style="height: 32px; padding: 0 14px; font-size: 11px; font-weight: 600;">
+                <i class="fa fa-plus"></i> New App
+            </button>
+        </div>
     </div>
 
-</div>
-
-
-    <!-- APPLICATION TABS -->
-    <div class="app-tabs">
-    {% for app in client_apps %}
-        <div class="tab {% if loop.first %}active{% endif %}"
-             id="tab-{{app.app_name}}"
-             onclick="selectApp('{{app.app_name}}')">
+    <!-- 2. APPLICATION TABS (Pill Style) -->
+    <div class="app-tabs" style="display: flex; gap: 6px; margin-bottom: 32px; overflow-x: auto; padding-bottom: 2px;">
+        {% for app in client_apps %}
+        <div class="tab-pill {% if loop.first %}active{% endif %}" id="tab-{{app.app_name}}"
+            onclick="selectApp('{{app.app_name}}')"
+            style="padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-color); cursor: pointer; font-size: 12px; font-weight: 500; white-space: nowrap; transition: all 0.2s; color: var(--text-dim); background: transparent;">
             {{ app.app_name }}
         </div>
-    {% endfor %}
+        {% endfor %}
     </div>
 
+    <!-- 3. MAIN CONTENT (2-COLUMN GRID) -->
+    <div class="console-grid" style="display: flex; gap: 20px; align-items: stretch; margin-bottom: 20px;">
 
-    <!-- PROMPT SECTION -->
-    <div class="prompt-section">
-
-        <!-- LEFT CARD -->
-        <div class="prompt-card">
-            <h3>Default Behavior Prompt</h3>
-
-            <textarea id="defaultPrompt" class="prompt-box readonly" readonly>
+        <!-- LEFT: Base Behavior -->
+        <div class="soft-card"
+            style="flex: 1; background: #06121f; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 500; color: var(--text-bright);">Base System
+                    Behavior</h3>
+                <span
+                    style="font-size: 9px; background: rgba(255,255,255,0.03); color: var(--text-dim); padding: 2px 8px; border-radius: 4px; font-weight: 700; border: 1px solid rgba(255,255,255,0.05);">CORE_LOGIC</span>
+            </div>
+            <p style="color: #94a3b8; font-size: 12px; margin: 0 0 16px 0; line-height: 1.4;">Foundation logic for
+                booking flow and data validation. (Read Only)</p>
+            <textarea id="defaultPrompt" class="compact-textarea" readonly
+                style="width: 100%; flex: 1; min-height: 240px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); color: #94a3b8; font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 14px; border-radius: 8px; resize: none; outline: none;">
 You are a helpful, polite booking assistant. Ask the user for necessary booking information such as date, time, number of people, name and contact details. Ask one question at a time and confirm details before ending the conversation.
             </textarea>
-
-            <div class="json-link">View JSON Response Example ></div>
         </div>
 
-        <!-- RIGHT CARD -->
-        <div class="prompt-card">
-
-            <div class="card-head">
-                <h3>Application Specific Prompt</h3>
-                <span class="reset" onclick="resetPrompt()">Reset to Default</span>
+        <!-- RIGHT: Agent Persona Overlay -->
+        <div class="soft-card"
+            style="flex: 1; background: #06121f; border: 1px solid rgba(0, 229, 255, 0.1); border-radius: 12px; padding: 20px; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+                <h3 style="margin: 0; font-size: 16px; font-weight: 500; color: var(--text-bright);">Agent Persona
+                    Overlay</h3>
+                <button class="reset-link" onclick="resetPrompt()"
+                    style="background: none; border: none; font-size: 11px; color: var(--text-dim); cursor: pointer; transition: color 0.2s;">
+                    <i class="fa fa-rotate-left"></i> Reset
+                </button>
             </div>
+            <p style="color: #94a3b8; font-size: 12px; margin: 0 0 16px 0; line-height: 1.4;">Custom greeting, business
+                tone, and unique personality traits.</p>
+            <textarea id="customPrompt" class="compact-textarea active"
+                placeholder="Define exactly how the AI should represent this application..."
+                style="width: 100%; flex: 1; min-height: 240px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); color: #e6f1ff; font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 14px; border-radius: 8px; resize: none; outline: none; transition: all 0.2s;"></textarea>
 
-            <textarea id="customPrompt" class="prompt-box edit"
-                      placeholder="Write how AI should talk for this application..."></textarea>
-
-            <div class="card-footer">
-                <div class="json-link">View JSON Response Example ></div>
-                <!-- FIXED BUTTON -->
-                <button class="update-btn" onclick="updatePrompt()">Update Prompt</button>
+            <div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span
+                        style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Creativity:</span>
+                    <input type="range" min="0" max="1" step="0.1" value="0.5" id="tempSlider"
+                        style="width: 80px; height: 3px; cursor: pointer;">
+                    <span id="tempValue"
+                        style="font-family: 'JetBrains Mono', monospace; color: var(--primary); font-size: 11px;">0.5</span>
+                </div>
+                <button class="btn-primary" onclick="updatePrompt()"
+                    style="height: 32px; padding: 0 18px; font-size: 12px; font-weight: 600;">Save Persona</button>
             </div>
-
         </div>
 
+    </div> <!-- End Grid -->
+
+    <!-- 4. TEST SECTION (Full Width) -->
+    <div class="soft-card"
+        style="background: #06121f; border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 20px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+            <i class="fa fa-vial" style="color: var(--primary); font-size: 14px;"></i>
+            <h3 style="margin: 0; font-size: 16px; font-weight: 500; color: var(--text-bright);">Test AI Response</h3>
+        </div>
+
+        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
+            <input type="text" placeholder="Simulate a user message..."
+                style="flex: 1; height: 36px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: var(--text-bright); padding: 0 12px; border-radius: 6px; font-size: 13px;">
+            <button class="btn-primary" style="height: 36px; padding: 0 20px; font-size: 12px; font-weight: 600;">Run
+                Test</button>
+        </div>
+
+        <div
+            style="background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 14px; min-height: 60px;">
+            <label
+                style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 6px;">Output
+                Result:</label>
+            <p style="margin: 0; color: #a5d6ff; font-size: 13px; line-height: 1.5; font-style: italic;">Response
+                simulation will appear here based on active configuration.</p>
+        </div>
     </div>
 
 </div>
 
-<!-- ================= JS ================= -->
-<script>
-
-let selectedApp = "{{ client_apps[0].app_name if client_apps else '' }}";
-
-function createApp(){
-    const name = prompt("Enter Application Name:");
-    if(!name) return;
-
-    fetch("/client/create_application",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ app_name: name })
-    })
-    .then(res=>res.json())
-    .then(data=>{
-        if(data.status === "created"){
-            alert("Application Created");
-            location.reload();
-        }else{
-            alert(data.error || "Error creating app");
-        }
-    })
-}
-
-function selectApp(app){
-    selectedApp = app;
-
-    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-    document.getElementById("tab-"+app).classList.add("active");
-
-    loadPrompt(app);
-}
-
-function loadPrompt(app){
-    fetch("/llm/get/"+app)
-    .then(res=>res.json())
-    .then(data=>{
-        document.getElementById("defaultPrompt").value = data.default_prompt || "";
-        document.getElementById("customPrompt").value = data.custom_prompt || "";
-        document.getElementById("enableToggle").checked = data.enabled || false;
-    });
-}
-
-function resetPrompt(){
-    document.getElementById("customPrompt").value =
-        document.getElementById("defaultPrompt").value;
-}
-
-window.onload = function(){
-    if(selectedApp){
-        loadPrompt(selectedApp);
-    }
-}
-
-function updatePrompt(){
-    const app = document.getElementById("appSelect").value;
-    const customPrompt = document.getElementById("customPrompt").value;
-
-    if(!app){
-        alert("Please select application");
-        return;
-    }
-
-    fetch("/update-llm-prompt", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            app_name: app,
-            custom_prompt: customPrompt
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        alert("Prompt saved permanently");
-
-        // 👇 ALSO UPDATE DEFAULT BOX IMMEDIATELY
-        document.getElementById("defaultPrompt").value = customPrompt;
-    });
-}
-
-function selectAppFromDropdown(){
-    const app = document.getElementById("appSelect").value;
-    if(!app) return;
-
-    selectedApp = app;
-
-    fetch("/get-llm-prompt/" + app)
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById("customPrompt").value = data.custom_prompt || "";
-        document.getElementById("defaultPrompt").value = data.default_prompt || "";
-    });
-}
-
-
-</script>
-
-
-
-<!-- ================= CSS ================= -->
 <style>
-/* ========== WRAPPER ========== */
-.llm-wrapper{
-    padding:32px 42px;
-    color:#e6edf3;
-    font-family:'Segoe UI',sans-serif;
-    max-width:1400px;
-    margin:auto;
-}
-
-/* ========== BREADCRUMB ========== */
-.breadcrumb{
-    font-size:13px;
-    color:#8aa0b5;
-    margin-bottom:18px;
-}
-
-/* ========== TITLE ROW ========== */
-.llm-title-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:28px;
-}
-.llm-title-row h1{
-    margin:0;
-    font-size:28px;
-    font-weight:600;
-    letter-spacing:.2px;
-}
-.llm-title-row p{
-    margin-top:6px;
-    color:#8aa0b5;
-    font-size:14px;
-}
-
-/* ========== TOGGLE SWITCH (PRO STYLE) ========== */
-.toggle-area{
-    display:flex;
-    align-items:center;
-    gap:12px;
-    font-size:14px;
-}
-
-.toggle-area input{
-    appearance:none;
-    width:46px;
-    height:24px;
-    background:#1c3344;
-    border-radius:20px;
-    position:relative;
-    cursor:pointer;
-    outline:none;
-    transition:.3s;
-}
-
-.toggle-area input:checked{
-    background:#1f8fff;
-}
-
-.toggle-area input::before{
-    content:"";
-    width:18px;
-    height:18px;
-    background:white;
-    border-radius:50%;
-    position:absolute;
-    top:3px;
-    left:3px;
-    transition:.3s;
-}
-
-.toggle-area input:checked::before{
-    left:24px;
-}
-
-/* ========== APP TABS ========== */
-.app-tabs{
-    display:flex;
-    gap:12px;
-    margin-bottom:28px;
-    flex-wrap:wrap;
-}
-
-.tab{
-    padding:10px 18px;
-    border-radius:8px;
-    border:1px solid #1c3344;
-    background:#0f2532;
-    cursor:pointer;
-    font-size:13px;
-    min-width:110px;
-    text-align:center;
-    transition:.2s ease;
-}
-
-.tab:hover{
-    border-color:#1f8fff;
-    background:#122c3d;
-}
-
-.tab.active{
-    border:1px solid #1f8fff;
-    background:linear-gradient(180deg,#0f2532,#122c3d);
-    box-shadow:0 0 0 1px #1f8fff inset;
-}
-
-/* ========== PROMPT GRID ========== */
-.prompt-section{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:24px;
-}
-
-/* ========== CARDS ========== */
-.prompt-card{
-    background:#0f2230;
-    border:1px solid #1c3344;
-    border-radius:14px;
-    padding:22px;
-    box-shadow:0 4px 20px rgba(0,0,0,0.25);
-    transition:.2s ease;
-}
-
-.prompt-card:hover{
-    transform:translateY(-3px);
-}
-
-/* ========== CARD HEADER ========== */
-.card-head{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom:10px;
-}
-
-.prompt-card h3{
-    margin:0 0 12px 0;
-    font-size:15px;
-    font-weight:600;
-}
-
-/* ========== TEXTAREA ========== */
-.prompt-box{
-    width:94%;
-    height:210px;
-    background:#08131c;
-    border:1px solid #1c3344;
-    border-radius:10px;
-    padding:14px;
-    font-family:monospace;
-    font-size:13px;
-    color:#cfe3f5;
-    resize:none;
-    transition:.2s;
-}
-
-.prompt-box:focus{
-    outline:none;
-    border-color:#1f8fff;
-    box-shadow:0 0 0 1px #1f8fff inset;
-}
-
-/* ========== LINKS ========== */
-.json-link{
-    margin-top:12px;
-    color:#1f8fff;
-    font-size:13px;
-    cursor:pointer;
-    transition:.2s;
-}
-
-.json-link:hover{
-    text-decoration:underline;
-}
-
-/* ========== RESET TEXT ========== */
-.reset{
-    font-size:13px;
-    color:#8aa0b5;
-    cursor:pointer;
-    transition:.2s;
-}
-.reset:hover{
-    color:#1f8fff;
-}
-
-/* ========== FOOTER ========== */
-.card-footer{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-top:14px;
-}
-
-/* ========== BUTTON ========== */
-.update-btn{
-    background:linear-gradient(135deg,#1f8fff,#2da2ff);
-    border:none;
-    padding:9px 18px;
-    border-radius:8px;
-    color:white;
-    font-weight:600;
-    cursor:pointer;
-    transition:.2s ease;
-    box-shadow:0 4px 12px rgba(31,143,255,0.3);
-}
-
-.update-btn:hover{
-    transform:translateY(-1px);
-    box-shadow:0 6px 16px rgba(31,143,255,0.45);
-}
-
-/* ========== RESPONSIVE ========== */
-@media(max-width:900px){
-    .prompt-section{
-        grid-template-columns:1fr;
+    .tab-pill.active {
+        color: var(--primary) !important;
+        border-color: rgba(0, 229, 255, 0.3) !important;
+        background: rgba(0, 229, 255, 0.05) !important;
     }
-}
-.create-app-btn{
-    background:linear-gradient(135deg,#1f8fff,#2da2ff);
-    border:none;
-    padding:8px 16px;
-    border-radius:8px;
-    color:white;
-    font-weight:600;
-    font-size:13px;
-    cursor:pointer;
-    transition:.2s;
-    box-shadow:0 4px 12px rgba(31,143,255,0.3);
-}
 
-.create-app-btn:hover{
-    transform:translateY(-1px);
-    box-shadow:0 6px 16px rgba(31,143,255,0.45);
-}
+    .tab-pill:hover {
+        border-color: rgba(255, 255, 255, 0.1);
+        color: var(--text-bright);
+    }
 
+    .compact-textarea.active:focus {
+        border-color: rgba(0, 229, 255, 0.4) !important;
+        background: rgba(0, 229, 255, 0.02) !important;
+    }
+
+    .reset-link:hover {
+        color: var(--primary) !important;
+    }
+
+    /* Toggle Switch (Sleek) */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 32px;
+        height: 16px;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #1e293b;
+        transition: .4s;
+        border-radius: 16px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 10px;
+        width: 10px;
+        left: 3px;
+        bottom: 3px;
+        background-color: #64748b;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked+.slider {
+        background-color: rgba(34, 197, 94, 0.2);
+    }
+
+    input:checked+.slider:before {
+        transform: translateX(16px);
+        background-color: #22c55e;
+    }
+
+    /* Range Slider */
+    input[type=range] {
+        -webkit-appearance: none;
+        background: transparent;
+    }
+
+    input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 1px;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+        height: 12px;
+        width: 12px;
+        border-radius: 50%;
+        background: var(--primary);
+        cursor: pointer;
+        -webkit-appearance: none;
+        margin-top: -5px;
+        box-shadow: 0 0 6px rgba(0, 229, 255, 0.3);
+    }
 </style>
+
+<script>
+    let selectedApp = "{{ client_apps[0].app_name if client_apps else '' }}";
+
+    function selectApp(app) {
+        selectedApp = app;
+        document.querySelectorAll(".tab-pill").forEach(t => t.classList.remove("active"));
+        const activeTab = document.getElementById("tab-" + app);
+        if (activeTab) activeTab.classList.add("active");
+
+        const dropdown = document.getElementById("appSelect");
+        if (dropdown) dropdown.value = app;
+
+        loadPrompt(app);
+    }
+
+    function selectAppFromDropdown() {
+        const app = document.getElementById("appSelect").value;
+        if (!app) return;
+        selectApp(app);
+    }
+
+    function loadPrompt(app) {
+        fetch("/llm/get/" + app)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("defaultPrompt").value = data.default_prompt || "";
+                document.getElementById("customPrompt").value = data.custom_prompt || "";
+                document.getElementById("enableToggle").checked = data.enabled || false;
+            });
+    }
+
+    function resetPrompt() {
+        if (confirm("Discard custom persona changes?")) {
+            document.getElementById("customPrompt").value = document.getElementById("defaultPrompt").value;
+        }
+    }
+
+    function updatePrompt() {
+        const app = document.getElementById("appSelect").value || selectedApp;
+        const customPrompt = document.getElementById("customPrompt").value;
+
+        if (!app) {
+            alert("Application context missing.");
+            return;
+        }
+
+        fetch("/update-llm-prompt", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                app_name: app,
+                custom_prompt: customPrompt
+            })
+        })
+            .then(res => res.json())
+            .then(data => {
+                alert("Settings synchronized.");
+            });
+    }
+
+    function createApp() {
+        const name = prompt("Application identifier:");
+        if (!name) return;
+
+        fetch("/client/create_application", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ app_name: name })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "created") {
+                    location.reload();
+                } else {
+                    alert(data.error || "Creation failed");
+                }
+            });
+    }
+
+    window.onload = function () {
+        if (selectedApp) {
+            loadPrompt(selectedApp);
+            const dropdown = document.getElementById("appSelect");
+            if (dropdown) dropdown.value = selectedApp;
+        }
+    }
+
+    const slider = document.getElementById("tempSlider");
+    const valDisp = document.getElementById("tempValue");
+    if (slider && valDisp) {
+        slider.oninput = function () {
+            valDisp.innerText = this.value;
+        }
+    }
+</script>
 
 {% endblock %}

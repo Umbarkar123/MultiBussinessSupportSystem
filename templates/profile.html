@@ -1,96 +1,282 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="page-header">
-    <h1>Client Profile</h1>
-    <p style="color:#9aa4b2">Manage your account details</p>
-</div>
-
-<div class="card profile-box">
-
-    <h2>Profile Information</h2>
-
-    <form method="POST">
-
-        <div class="profile-row">
-            <label>Full Name</label>
-            <input type="text" name="name" value="{{ data.name }}">
+<div class="profile-container">
+    <div class="profile-card">
+        <!-- HEADER SECTION -->
+        <div class="profile-header">
+            <div class="avatar-wrapper">
+                <div class="avatar-circle">
+                    {{ data.name[0] if data.name else 'U' }}
+                </div>
+                <div class="status-dot"></div>
+            </div>
+            <div class="header-info">
+                <h1>{{ data.name or 'User Profile' }}</h1>
+                <p>{{ data.email }}</p>
+                <span class="badge-online">Online</span>
+            </div>
         </div>
 
-        <div class="profile-row">
-            <label>Phone Number</label>
-            <input type="text" name="phone" value="{{ data.phone or data.number }}" placeholder="+1234567890">
-        </div>
+        <form method="POST" class="profile-form">
+            <!-- SECTION A: PERSONAL INFO -->
+            <div class="form-section">
+                <h2 class="section-title">Personal Information</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="name" value="{{ data.name }}" placeholder="Your Name">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="text" name="phone" value="{{ data.phone or data.number }}"
+                            placeholder="+1 234 567 890">
+                    </div>
+                </div>
+            </div>
 
-        <div class="profile-row">
-            <label>Email Address</label>
-            <input type="email" value="{{ data.email }}" disabled>
-        </div>
+            <div class="divider"></div>
 
-        <div class="profile-row">
-            <label>Role</label>
-            <input type="text" value="{{ role }}" disabled>
-        </div>
+            <!-- SECTION B: ACCOUNT INFO -->
+            <div class="form-section">
+                <h2 class="section-title">Account Information</h2>
+                <div class="form-grid">
+                    <div class="form-group readonly">
+                        <label>Email Address</label>
+                        <input type="email" value="{{ data.email }}" readonly>
+                        <span class="hint">Email cannot be changed</span>
+                    </div>
+                    <div class="form-group readonly">
+                        <label>Role</label>
+                        <input type="text" value="{{ role }}" readonly>
+                    </div>
+                </div>
+            </div>
 
-        <button type="submit" class="save-btn">Save Changes</button>
-
-    </form>
-
+            <div class="form-actions">
+                <button type="submit" class="btn-save">Save Changes</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <style>
-    /* SAME COLOR AS YOUR DASHBOARD */
-
-    .profile-box {
-        max-width: 600px;
-        margin-top: 25px;
+    :root {
+        --profile-bg: #0f172a;
+        --profile-card: #1e293b;
+        --profile-border: #334155;
+        --profile-text: #f8fafc;
+        --profile-muted: #94a3b8;
+        --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+        --success-dot: #10b981;
     }
 
-    /* Proper spacing */
-    .profile-row {
+    .profile-container {
+        display: flex;
+        justify-content: center;
+        padding: 30px 20px;
+        min-height: calc(100vh - 100px);
+    }
+
+    .profile-card {
+        width: 100%;
+        max-width: 600px;
+        background: var(--profile-card);
+        border: 1px solid var(--profile-border);
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* HEADER */
+    .profile-header {
+        padding: 32px;
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--profile-border);
+    }
+
+    .avatar-wrapper {
+        position: relative;
+    }
+
+    .avatar-circle {
+        width: 80px;
+        height: 80px;
+        background: var(--accent-gradient);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        font-weight: 700;
+        color: white;
+        text-transform: uppercase;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+    .status-dot {
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        width: 14px;
+        height: 14px;
+        background: var(--success-dot);
+        border: 3px solid var(--profile-card);
+        border-radius: 50%;
+    }
+
+    .header-info h1 {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 4px 0;
+        color: var(--profile-text);
+    }
+
+    .header-info p {
+        font-size: 14px;
+        color: var(--profile-muted);
+        margin: 0 0 8px 0;
+    }
+
+    .badge-online {
+        font-size: 11px;
+        font-weight: 600;
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success-dot);
+        padding: 2px 8px;
+        border-radius: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* FORM */
+    .profile-form {
+        padding: 32px;
+    }
+
+    .form-section {
+        margin-bottom: 24px;
+    }
+
+    .section-title {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--profile-muted);
+        letter-spacing: 0.1em;
+        margin-bottom: 20px;
+    }
+
+    .form-grid {
         display: flex;
         flex-direction: column;
-        margin-bottom: 18px;
+        gap: 16px;
     }
 
-    .profile-row label {
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group label {
         font-size: 13px;
-        margin-bottom: 6px;
-        color: #9aa4b2;
-    }
-
-    /* Inputs same style as rest of app */
-    .profile-row input {
-        padding: 11px 12px;
-        border-radius: 6px;
-        border: 1px solid #2d3748;
-        background: #0f1722;
-        color: white;
-        font-size: 14px;
-        width: 95%;
-    }
-
-    .profile-row input:focus {
-        border: 1px solid #facc15;
-        outline: none;
-    }
-
-    /* Button same as your buttons */
-    .save-btn {
-        margin-top: 12px;
-        padding: 8px 16px;
-        background: #3a2d0a;
-        color: #ffcc66;
-        border-radius: 20px;
-        font-size: 12px;
         font-weight: 500;
-        border: none;
-        cursor: pointer;
+        color: var(--profile-muted);
     }
 
-    .save-btn:hover {
-        background: #facc15;
-        color: black;
+    .form-group input {
+        background: var(--profile-bg);
+        border: 1px solid var(--profile-border);
+        border-radius: 8px;
+        padding: 12px;
+        color: var(--profile-text);
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .form-group.readonly input {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .hint {
+        font-size: 11px;
+        color: #64748b;
+        margin-top: -4px;
+    }
+
+    .divider {
+        height: 1px;
+        background: var(--profile-border);
+        margin: 24px 0;
+        opacity: 0.5;
+    }
+
+    .form-actions {
+        margin-top: 32px;
+    }
+
+    .btn-save {
+        width: 100%;
+        padding: 14px;
+        border-radius: 8px;
+        border: none;
+        background: var(--accent-gradient);
+        color: white;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-save:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-save:active {
+        transform: translateY(0);
+    }
+
+    /* MOBILE */
+    @media (max-width: 640px) {
+        .profile-container {
+            padding: 0;
+        }
+
+        .profile-card {
+            border-radius: 0;
+            border: none;
+        }
+
+        .profile-header {
+            flex-direction: column;
+            text-align: center;
+        }
     }
 </style>
 

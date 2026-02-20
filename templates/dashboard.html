@@ -37,6 +37,7 @@
                 <tr>
                     <th>Name</th>
                     <th>Phone</th>
+                    <th>Scheduled</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -45,6 +46,13 @@
                 <tr>
                     <td>{{ call.name }}</td>
                     <td>{{ call.phone }}</td>
+                    <td style="font-size: 11px; color: var(--primary);">
+                        {% if call.call_time %}
+                        {{ call.call_time.strftime('%b %d, %H:%M') }}
+                        {% else %}
+                        <span style="opacity: 0.5;">Immediate</span>
+                        {% endif %}
+                    </td>
                     <td>
                         <span class="badge {{ call.status|lower }}">
                             {{ call.status }}

@@ -85,192 +85,198 @@
 
 <!-- ================= STYLE ================= -->
 <style>
+    .settings-wrapper {
+        max-width: 900px;
+        margin: auto;
+        padding: 25px;
+        color: #d4e8ff;
+        font-family: 'Segoe UI', sans-serif;
+    }
 
-.settings-wrapper{
-    max-width:900px;
-    margin:auto;
-    padding:25px;
-    color:#d4e8ff;
-    font-family:'Segoe UI',sans-serif;
-}
+    /* HEADER */
+    .settings-header {
+        margin-bottom: 20px;
+    }
 
-/* HEADER */
-.settings-header{
-    margin-bottom:20px;
-}
+    .settings-header h1 {
+        font-size: 24px;
+        font-weight: 600;
+    }
 
-.settings-header h1{
-    font-size:24px;
-    font-weight:600;
-}
+    .settings-header p {
+        font-size: 13px;
+        opacity: .6;
+    }
 
-.settings-header p{
-    font-size:13px;
-    opacity:.6;
-}
+    /* CARD */
+    .settings-card {
+        background: #0f2230;
+        border: 1px solid #1c3344;
+        border-radius: 12px;
+        padding: 26px;
+        margin-top: 10px;
+    }
 
-/* CARD */
-.settings-card{
-    background:#0f2230;
-    border:1px solid #1c3344;
-    border-radius:12px;
-    padding:26px;
-    margin-top:10px;
-}
+    /* SECTION */
+    .section-title {
+        font-size: 15px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        color: #9ecbff;
+    }
 
-/* SECTION */
-.section-title{
-    font-size:15px;
-    font-weight:600;
-    margin-bottom:12px;
-    color:#9ecbff;
-}
+    .divider {
+        border: none;
+        border-top: 1px solid #132b3a;
+        margin: 18px 0;
+    }
 
-.divider{
-    border:none;
-    border-top:1px solid #132b3a;
-    margin:18px 0;
-}
+    /* INPUT */
+    .form-group label {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 6px;
+        color: #9fbcd3;
+    }
 
-/* INPUT */
-.form-group label{
-    display:block;
-    font-size:13px;
-    margin-bottom:6px;
-    color:#9fbcd3;
-}
+    .form-group input {
+        width: 100%;
+        height: 40px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        background: #08131c;
+        border: 1px solid #1c3344;
+        color: white;
+    }
 
-.form-group input{
-    width:100%;
-    height:40px;
-    padding:6px 12px;
-    border-radius:6px;
-    background:#08131c;
-    border:1px solid #1c3344;
-    color:white;
-}
+    /* TOGGLE GROUP */
+    .toggle-group {
+        margin-top: 10px;
+    }
 
-/* TOGGLE GROUP */
-.toggle-group{
-    margin-top:10px;
-}
+    .toggle-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 0;
+        border-top: 1px solid #132b3a;
+    }
 
-.toggle-item{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:16px 0;
-    border-top:1px solid #132b3a;
-}
+    .toggle-item strong {
+        font-size: 14px;
+    }
 
-.toggle-item strong{
-    font-size:14px;
-}
+    .toggle-item span {
+        font-size: 12px;
+        opacity: .6;
+    }
 
-.toggle-item span{
-    font-size:12px;
-    opacity:.6;
-}
+    /* SWITCH */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 46px;
+        height: 24px;
+    }
 
-/* SWITCH */
-.switch{
-    position:relative;
-    display:inline-block;
-    width:46px;
-    height:24px;
-}
+    .switch input {
+        opacity: 0;
+    }
 
-.switch input{
-    opacity:0;
-}
+    .slider {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #2a3f4f;
+        border-radius: 34px;
+        transition: .3s;
+    }
 
-.slider{
-    position:absolute;
-    top:0;
-    left:0;
-    right:0;
-    bottom:0;
-    background:#2a3f4f;
-    border-radius:34px;
-    transition:.3s;
-}
+    .slider:before {
+        content: "";
+        position: absolute;
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background: white;
+        border-radius: 50%;
+        transition: .3s;
+    }
 
-.slider:before{
-    content:"";
-    position:absolute;
-    height:18px;
-    width:18px;
-    left:3px;
-    bottom:3px;
-    background:white;
-    border-radius:50%;
-    transition:.3s;
-}
+    input:checked+.slider {
+        background: #1f8fff;
+    }
 
-input:checked + .slider{
-    background:#1f8fff;
-}
+    input:checked+.slider:before {
+        transform: translateX(22px);
+    }
 
-input:checked + .slider:before{
-    transform:translateX(22px);
-}
+    /* SAVE BUTTON */
+    .form-actions {
+        margin-top: 20px;
+    }
 
-/* SAVE BUTTON */
-.form-actions{
-    margin-top:20px;
-}
+    .save-btn {
+        width: 100%;
+        height: 44px;
+        border: none;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #1f8fff, #2da2ff);
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+    }
 
-.save-btn{
-    width:100%;
-    height:44px;
-    border:none;
-    border-radius:10px;
-    background:linear-gradient(135deg,#1f8fff,#2da2ff);
-    color:white;
-    font-weight:600;
-    cursor:pointer;
-    font-size:14px;
-}
+    /* DANGER ZONE */
+    .danger-zone {
+        margin-top: 28px;
+        padding: 22px;
+        border: 1px solid #5a1a25;
+        background: #1a0f12;
+        border-radius: 12px;
+    }
 
-/* DANGER ZONE */
-.danger-zone{
-    margin-top:28px;
-    padding:22px;
-    border:1px solid #5a1a25;
-    background:#1a0f12;
-    border-radius:12px;
-}
+    .danger-zone h3 {
+        color: #ff6b6b;
+        margin-bottom: 6px;
+    }
 
-.danger-zone h3{
-    color:#ff6b6b;
-    margin-bottom:6px;
-}
-
-.delete-btn{
-    margin-top:12px;
-    padding:10px 18px;
-    background:#2a0f14;
-    border:1px solid #5a1a25;
-    color:#ff6b6b;
-    border-radius:8px;
-    cursor:pointer;
-}
-
+    .delete-btn {
+        margin-top: 12px;
+        padding: 10px 18px;
+        background: #2a0f14;
+        border: 1px solid #5a1a25;
+        color: #ff6b6b;
+        border-radius: 8px;
+        cursor: pointer;
+    }
 </style>
 
 <script>
-function deleteApp(name){
-    if(!confirm("Are you sure you want to delete this application?")) return;
+    function deleteApp(name) {
+        if (!confirm("Are you sure you want to delete this application? This will permanently remove all related data.")) return;
 
-    fetch("/delete-application/"+name,{
-        method:"DELETE"
-    })
-    .then(res=>res.json())
-    .then(data=>{
-        alert("Application Deleted");
-        window.location.href="/applications";
-    });
-}
+        fetch("/client/application/" + name + "/delete", {
+            method: "DELETE"
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "deleted") {
+                    alert("Application Deleted");
+                    window.location.href = "/client/applications";
+                } else {
+                    alert("Error deleting application: " + (data.error || "Unknown error"));
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert("Failed to delete application.");
+            });
+    }
 </script>
 
 {% endblock %}

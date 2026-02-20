@@ -4,448 +4,704 @@
 <div class="fb-page">
 
     <style>
-        .fb-page .helper {
-            font-size: 14px;
-            opacity: .6;
-            margin-bottom: 14px;
-        }
-
-        /* ========== PAGE ISOLATION ========== */
+        /* ========== MODERN SAAS FORM BUILDER STYLES ========== */
         .fb-page {
-            max-width: 1400px;
+            max-width: 1440px;
             margin: 0 auto;
-            color: #cfe3f5;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            color: var(--text-bright);
         }
 
-        /* ========== GRID ========== */
-        .fb-page .builder-layout {
-            display: grid;
-            grid-template-columns: 280px 1fr 360px;
-            gap: 24px;
-            margin-top: 18px;
-        }
-
-        /* ========== HEADER ========== */
-        .fb-page .builder-header {
+        /* Top Action Bar */
+        .fb-action-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #0f2230;
-            padding: 14px 18px;
+            background: var(--bg-card);
+            padding: 12px 24px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .fb-action-bar h2 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.02em;
+        }
+
+        .fb-header-btns {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-outline {
+            height: 38px;
+            padding: 0 18px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-bright);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-outline:hover {
+            background: rgba(255, 255, 255, 0.07);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-primary-fb {
+            height: 38px;
+            padding: 0 20px;
+            border-radius: 10px;
+            border: none;
+            background: var(--primary);
+            color: var(--bg-dark);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+        }
+
+        .btn-primary-fb:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+            background: var(--primary-hover);
+        }
+
+        /* 3-Column Layout */
+        .builder-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr 340px;
+            gap: 20px;
+            height: calc(100vh - 160px);
+            min-height: 700px;
+        }
+
+        @media (max-width: 1200px) {
+            .builder-grid {
+                grid-template-columns: 280px 1fr;
+            }
+
+            .sidebar-right {
+                grid-column: span 2;
+                height: auto !important;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .builder-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar-left {
+                display: none;
+            }
+        }
+
+        /* Panel Common */
+        .fb-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .fb-panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .fb-panel-header h3 {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0;
+            color: var(--text-dim);
+        }
+
+        .fb-panel-content {
+            padding: 16px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* Left Sidebar: Fields Library */
+        .field-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.03);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 4px;
+        }
+
+        .field-tab {
+            flex: 1;
+            padding: 8px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            color: var(--text-dim);
+            transition: all 0.2s;
+        }
+
+        .field-tab.active {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--primary);
+        }
+
+        .fields-search-wrap {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .fields-search {
+            width: 100%;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 8px;
+            padding: 0 12px;
+            color: var(--text-bright);
+            font-size: 13px;
+        }
+
+        .fields-search:focus {
+            border-color: var(--primary);
+            outline: none;
+            background: rgba(0, 229, 255, 0.03);
+        }
+
+        .fields-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 16px;
+        }
+
+        .field-lib-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 12px;
-            border: 1px solid #1c3344;
+            cursor: grab;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .field-lib-item:hover {
+            background: rgba(0, 229, 255, 0.04);
+            border-color: rgba(0, 229, 255, 0.2);
+            transform: translateX(4px);
+        }
+
+        .field-lib-item i {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--primary);
+        }
+
+        .field-lib-item span {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* Center Canvas */
+        .canvas-drop-zone {
+            flex: 1;
+            border: 2px dashed rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            margin: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-dim);
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.01);
+            padding: 24px;
+        }
+
+        .canvas-drop-zone.drag-over {
+            border-color: var(--primary);
+            background: rgba(0, 229, 255, 0.03);
+            transform: scale(0.99);
+        }
+
+        .canvas-empty-state {
+            text-align: center;
+            display: block;
+        }
+
+        .canvas-empty-state i {
+            font-size: 40px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .form-fields-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Form Field Card */
+        .field-card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 20px;
+            position: relative;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .field-card:hover {
+            border-color: rgba(0, 229, 255, 0.3);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .field-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .field-label-input {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-bright);
+            background: transparent;
+            border: 1px solid transparent;
+            padding: 4px 8px;
+            border-radius: 6px;
+            outline: none;
+            width: 70%;
+        }
+
+        .field-label-input:focus {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .field-type-badge {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 8px;
+            border-radius: 6px;
+        }
+
+        .field-preview-input {
+            width: 100%;
+            height: 44px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+            padding: 0 14px;
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        .field-card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .field-action-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+        }
+
+        .field-action-btn:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .field-action-btn.edit:hover {
+            background: rgba(0, 229, 255, 0.1);
+            color: var(--primary);
+            border-color: rgba(0, 229, 255, 0.2);
+        }
+
+        /* Right Sidebar: Settings */
+        .settings-section {
+            margin-bottom: 24px;
+        }
+
+        .settings-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            letter-spacing: 0.08em;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .setting-field {
             margin-bottom: 16px;
         }
 
-        .fb-page .builder-actions button {
-            height: 35px;
-            padding: 0 16px;
-            border-radius: 8px;
-            border: 1px solid #1f3a4f;
-            background: #132b3a;
-            color: #cfe3f5;
-            margin-left: 8px;
-            cursor: pointer;
-        }
-
-        .fb-page .builder-actions .save {
-            background: #1f8fff;
-            color: white;
-            font-weight: 600;
-        }
-
-        /* ========== CARDS ========== */
-        .fb-page .card {
-            background: #0f2230;
-            border: 1px solid #1f3a4f;
-            border-radius: 14px;
-            padding: 24px;
-            min-height: 640px;
-            max-height: 620px;
-            overflow: auto;
-        }
-
-        /* ========== LEFT PANEL ========== */
-        .fb-page .tabs {
-            display: flex;
-            gap: 8px;
-            margin: 12px 0;
-        }
-
-        .fb-page .tabs span {
-            padding: 6px 12px;
-            border-radius: 20px;
-            background: #132b3a;
-            font-size: 12px;
-        }
-
-        .fb-page .tabs .active {
-            background: #1f8fff;
-            color: white;
-        }
-
-        .fb-page .elements-search {
-            width: 90%;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #1f3a4f;
-            background: #0b1720;
-            margin-bottom: 14px;
-            color: white;
-        }
-
-        .fb-page .field-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 14px;
-            border-radius: 12px;
-            border: 1px solid #1f3a4f;
-            margin-bottom: 10px;
-            background: #132b3a;
-            cursor: pointer;
-            transition: .2s;
-        }
-
-        .fb-page .field-item:hover {
-            background: #162f42;
-        }
-
-        /* ========== CENTER ========== */
-        .fb-page .helper {
-            opacity: .6;
-            margin-bottom: 10px;
-        }
-
-        .fb-page .form-field {
-            background: linear-gradient(145deg, #102a3a, #0c1f2b);
-            border: 1px solid #1f3a4f;
-            border-radius: 14px;
-            padding: 18px 18px 20px 18px;
-            margin-bottom: 18px;
-            position: relative;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.45);
-            transition: .25s ease;
-        }
-
-        .form-field:hover {
-            border-color: #2b5872;
-            transform: translateY(-2px);
-        }
-
-        .fb-page .form-field label {
+        .setting-field label {
             display: block;
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 600;
-            margin-bottom: 10px;
-            color: #e6f2ff;
-            letter-spacing: .3px;
-        }
-
-        .fb-page .form-field input {
-            height: 48px;
-            width: 93%;
-            background: #071923;
-            border: 1px solid #1f3a4f;
-            border-radius: 10px;
-            padding: 0 14px;
-            color: #cfe9ff;
-            font-size: 14px;
-            outline: none;
-            transition: .2s;
-        }
-
-        .fb-page .form-field input:focus {
-            border-color: #1f8fff;
-            box-shadow: 0 0 0 2px rgba(31, 143, 255, .25);
-        }
-
-
-        .fb-page .bottom-actions {
-            text-align: right;
-            margin-top: 14px;
-        }
-
-        .fb-page .bottom-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-            margin-top: 10px;
-        }
-
-        .fb-page .bottom-actions button {
-            height: 42px;
-            padding: 0 22px;
-            border-radius: 10px;
-            border: none;
-            font-weight: 600;
-            cursor: pointer;
-            transition: .2s;
-        }
-
-        .fb-page .bottom-actions button:first-child {
-            background: #132b3a;
-            color: #cfe3f5;
-        }
-
-        .fb-page .bottom-actions button:last-child {
-            background: #1f8fff;
-            color: white;
-        }
-
-        .fb-page .bottom-actions button:hover {
-            transform: translateY(-2px);
-        }
-
-        .fb-page .field-actions {
-            position: absolute;
-            top: 14px;
-            right: 16px;
-            display: flex;
-            gap: 8px;
-        }
-
-
-        /* Make them small & minimal */
-        .fb-page .field-actions span {
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            background: transparent;
-
-            font-size: 12px;
-            cursor: pointer;
-            transition: .2s ease;
-        }
-
-        .fb-page .field-actions span:hover {
-            background: #1f8fff;
-            border-color: #1f8fff;
-            color: white;
-        }
-
-
-        .fb-page .field-actions span:hover {
-            background: #1f8fff;
-        }
-
-
-        /* ========== RIGHT ========== */
-        .fb-page .setting input {
-            width: 100%;
-            height: 38px;
-            border-radius: 8px;
-            border: 1px solid #1f3a4f;
-            background: #0b1720;
-            color: white;
-            padding: 0 10px;
-            margin-top: 6px;
-        }
-
-        .fb-page .status-active {
-            margin-top: 16px;
-            background: #0a3a24;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            color: #66ffb2;
-        }
-
-        .fb-page .saas-container {
-            max-width: 1380px;
-            margin: 0 auto;
-        }
-
-        .fb-page .saas-grid {
-            display: grid;
-            grid-template-columns: 280px 1fr 360px;
-            gap: 24px;
-        }
-
-        .fb-page .saas-card {
-            background: #0f2230;
-            border: 1px solid #1f3a4f;
-            border-radius: 14px;
-            padding: 20px;
-            height: 640px;
-            overflow: auto;
-        }
-
-        .fb-page .saas-input {
-            height: 40px;
-            border-radius: 8px;
-        }
-
-        .fb-page .saas-btn {
-            height: 40px;
-            border-radius: 8px;
-        }
-
-        .fb-page .settings-card {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        .fb-page .settings-title {
-            font-size: 18px;
-            font-weight: 600;
+            color: var(--text-bright);
             margin-bottom: 6px;
         }
 
-        .fb-page .sub-title {
-            font-size: 14px;
-            opacity: .8;
-            margin-top: 4px;
-        }
-
-        .fb-page .setting-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .fb-page .setting-group label {
+        .setting-input {
+            width: 100%;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 0 12px;
+            color: var(--text-bright);
             font-size: 13px;
-            opacity: .7;
+            transition: all 0.2s;
         }
 
-        .fb-page .setting-group input {
-            height: 46px;
-            padding: 0 14px;
-            background: #0b1f2b;
-            border: 1px solid #1f3a4f;
-            border-radius: 10px;
-            color: #e6f2ff;
+        .setting-input:focus {
+            border-color: var(--primary);
             outline: none;
-            transition: .2s;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+            background: rgba(0, 229, 255, 0.02);
         }
 
-        .fb-page .setting-group input:focus {
-            border-color: #1f8fff;
-            box-shadow: 0 0 0 2px rgba(31, 143, 255, 0.25);
-        }
-
-        .fb-page .divider {
-            height: 1px;
-            background: #1c3344;
-            margin: 6px 0;
-        }
-
-        .fb-page .toggle-row {
+        .setting-toggle-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 4px;
         }
 
-        /* SaaS status badge */
-        .fb-page .status-badge {
-            margin-top: 10px;
-            background: #0d2f22;
-            border: 1px solid #1f5e46;
-            color: #6affc3;
-            height: 44px;
-            border-radius: 10px;
+        .status-badge {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-weight: 600;
             gap: 8px;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            color: var(--success);
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
         }
 
-        .fb-page .status-badge .dot {
+        .status-dot {
             width: 8px;
             height: 8px;
-            background: #35ffb6;
+            background: var(--success);
             border-radius: 50%;
+            box-shadow: 0 0 8px var(--success);
+        }
+
+        /* Modal Preview */
+        .preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .preview-content {
+            background: var(--bg-dark);
+            width: 100%;
+            max-width: 800px;
+            max-height: 90vh;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+        }
+
+        .preview-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-card);
+        }
+
+        .preview-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .close-preview {
+            cursor: pointer;
+            color: var(--text-dim);
+            font-size: 20px;
+            transition: color 0.2s;
+        }
+
+        .close-preview:hover {
+            color: var(--danger);
+        }
+
+        .preview-body {
+            padding: 40px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .field-card {
+            animation: fadeIn 0.3s ease-out;
         }
     </style>
 
-    <!-- HEADER -->
-    <div class="builder-header">
-        <h2>{{ app_name }} Form Builder</h2>
-        <div class="builder-actions">
-            <button>Actions ▾</button>
-            <button class="save" onclick="saveForm()">Save</button>
-            <button>⚙</button>
+    <!-- TOP ACTION BAR -->
+    <div class="fb-action-bar">
+        <h2>{{ app_name }} Builder</h2>
+        <div class="fb-header-btns">
+            <button class="btn-outline" id="autoGenerateBtn" onclick="autoGenerateFields()">
+                <i class="fa fa-magic"></i> Auto Generate
+            </button>
+            <button class="btn-outline" onclick="openPreview()">
+                <i class="fa fa-eye"></i> Preview
+            </button>
+            <button class="btn-primary-fb save" id="saveBtnTop">
+                <i class="fa fa-save"></i> Save Form
+            </button>
+            <div class="apd-more-wrap">
+                <button class="btn-outline" onclick="toggleActions(event)">
+                    Actions <i class="fa fa-chevron-down" style="font-size: 10px; margin-left: 4px;"></i>
+                </button>
+                <div class="apd-more-dropdown" id="actionsMenu">
+                    <a href="#" class="apd-more-item"><i class="fa fa-share"></i> Publish</a>
+                    <a href="#" class="apd-more-item"><i class="fa fa-copy"></i> Duplicate</a>
+                    <div class="apd-more-divider"></div>
+                    <a href="#" class="apd-more-item danger"><i class="fa fa-trash"></i> Delete</a>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="builder-layout">
+    <!-- MAIN GRID -->
+    <div class="builder-grid">
 
-        <!-- LEFT PANEL -->
-        <div class="card">
-            <div class="tabs">
-                <span class="active">Basic Fields</span>
-                <span>All</span>
+        <!-- LEFT PANEL: Library -->
+        <div class="fb-panel sidebar-left">
+            <div class="fb-panel-header">
+                <h3>Fields</h3>
             </div>
-
-            <input class="elements-search" placeholder="Search input...">
-
-            <!-- DRAGGABLE ITEMS -->
-            <div class="field-item" draggable="true" ondragstart="dragField(event,'text')">📝 Short Text</div>
-            <div class="field-item" draggable="true" ondragstart="dragField(event,'textarea')">📄 Long Text</div>
-            <div class="field-item" draggable="true" ondragstart="dragField(event,'email')">✉️ Email</div>
-            <div class="field-item" draggable="true" ondragstart="dragField(event,'number')">🔢 Number</div>
-            <div class="field-item" draggable="true" ondragstart="dragField(event,'date')">📅 Date</div>
-            <div class="field-item" draggable="true" ondragstart="dragField(event,'tel')">📞 Phone</div>
-            <div class="field-item" draggable="true" ondragstart="dragField(event,'time')">⏰ Time</div>
-            <div class="field-item" draggable="true" ondragstart="dragField(event,'select')">🔘 Dropdown</div>
-            <div class="field-item" draggable="true" ondragstart="dragField(event,'checkbox')">☑️ Checkbox</div>
-            <div class="field-item" draggable="true" ondragstart="dragField(event,'radio')">🔘 Radio Group</div>
+            <div class="field-tabs">
+                <div class="field-tab active" onclick="switchFieldTab('basic')">Basic</div>
+                <div class="field-tab" onclick="switchFieldTab('advanced')">Advanced</div>
+            </div>
+            <div class="fields-search-wrap">
+                <input type="text" class="fields-search" placeholder="Search fields..."
+                    oninput="filterFields(this.value)">
+            </div>
+            <div class="fb-panel-content">
+                <div class="fields-list" id="fieldLibrary">
+                    <div class="field-lib-item" draggable="true" ondragstart="dragField(event,'text')">
+                        <i class="fa fa-font"></i> <span>Short Text</span>
+                    </div>
+                    <div class="field-lib-item" draggable="true" ondragstart="dragField(event,'textarea')">
+                        <i class="fa fa-align-left"></i> <span>Long Text</span>
+                    </div>
+                    <div class="field-lib-item" draggable="true" ondragstart="dragField(event,'email')">
+                        <i class="fa fa-envelope"></i> <span>Email Address</span>
+                    </div>
+                    <div class="field-lib-item" draggable="true" ondragstart="dragField(event,'number')">
+                        <i class="fa fa-hashtag"></i> <span>Number Input</span>
+                    </div>
+                    <div class="field-lib-item" draggable="true" ondragstart="dragField(event,'date')">
+                        <i class="fa fa-calendar"></i> <span>Date Picker</span>
+                    </div>
+                    <div class="field-lib-item" draggable="true" ondragstart="dragField(event,'tel')">
+                        <i class="fa fa-phone"></i> <span>Phone Number</span>
+                    </div>
+                    <div class="field-lib-item" draggable="true" ondragstart="dragField(event,'select')">
+                        <i class="fa fa-chevron-circle-down"></i> <span>Dropdown</span>
+                    </div>
+                    <div class="field-lib-item" draggable="true" ondragstart="dragField(event,'checkbox')">
+                        <i class="fa fa-check-square"></i> <span>Checkbox</span>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- CENTER DROP ZONE -->
-        <div class="card" id="dropZone" ondragover="allowDrop(event)" ondrop="dropField(event)">
+        <!-- CENTER PANEL: Canvas -->
+        <div class="fb-panel center-canvas">
+            <div class="fb-panel-header">
+                <h3>Form Canvas</h3>
+            </div>
+            <div class="fb-panel-content">
+                <div class="canvas-drop-zone" id="dropZone" ondragover="allowDrop(event)"
+                    ondragenter="onDragEnter(event)" ondragleave="onDragLeave(event)" ondrop="dropField(event)">
 
-            <div class="helper">Drag new fields from the left panel</div>
+                    <div class="canvas-empty-state" id="emptyState">
+                        <i class="fa fa-plus-circle"></i>
+                        <p>Drag fields here to build your form</p>
+                    </div>
 
+                    <div class="form-fields-list" id="fieldsList">
+                        <!-- Fields will be rendered here -->
+                    </div>
+
+                </div>
+            </div>
         </div>
 
-        <!-- RIGHT PANEL -->
-        <div class="card settings-card">
-
-            <h3 class="settings-title">Form Settings</h3>
-
-            <div class="setting-group">
-                <label>Redirect on Submit</label>
-                <input placeholder="Enter URL">
+        <!-- RIGHT PANEL: Settings -->
+        <div class="fb-panel sidebar-right">
+            <div class="fb-panel-header">
+                <h3>Settings</h3>
             </div>
+            <div class="fb-panel-content">
 
-            <div class="setting-group">
-                <label>Confirmation Message</label>
-                <input value="Thank you! Your submission has been received.">
+                <div class="settings-section">
+                    <div class="settings-section-title">General Settings</div>
+                    <div class="setting-field">
+                        <label>Form Name</label>
+                        <input type="text" class="setting-input" value="{{ app_name }}">
+                    </div>
+                    <div class="setting-field">
+                        <label>Description</label>
+                        <input type="text" class="setting-input" placeholder="What is this form for?">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-section-title">Submission Settings</div>
+                    <div class="setting-field">
+                        <label>Redirect URL</label>
+                        <input type="text" class="setting-input" placeholder="https://example.com/thanks"
+                            id="redirectUrl">
+                    </div>
+                    <div class="setting-field">
+                        <label>Confirmation Message</label>
+                        <input type="text" class="setting-input" value="Thank you! Your submission has been received."
+                            id="successMsg">
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-section-title">Notifications</div>
+                    <div class="setting-field">
+                        <label>Admin Email</label>
+                        <input type="text" class="setting-input"
+                            value="{{ profile.email|default('admin@example.com') }}">
+                    </div>
+                    <div class="setting-toggle-row">
+                        <span style="font-size: 13px; color: var(--text-dim);">Email Notifications</span>
+                        <i class="fa fa-toggle-on" style="color: var(--primary); cursor: pointer; font-size: 18px;"></i>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <div class="settings-section-title">Status</div>
+                    <div class="status-badge">
+                        <span class="status-dot"></span> Form is Active
+                    </div>
+                </div>
+
             </div>
-
-            <div class="divider"></div>
-
-            <h4 class="sub-title">Email Notifications</h4>
-
-            <div class="setting-group">
-                <label>Admin Email</label>
-                <input value="admin@example.com">
-            </div>
-
-            <div class="status-badge">
-                <span class="dot"></span> Form is Active
-            </div>
-
         </div>
 
     </div>
 </div>
+
+<!-- PREVIEW MODAL -->
+<div class="preview-modal" id="previewModal">
+    <div class="preview-content">
+        <div class="preview-header">
+            <h3>Form Preview</h3>
+            <i class="fa fa-times close-preview" onclick="closePreview()"></i>
+        </div>
+        <div class="preview-body" id="previewBody">
+            <!-- Simulated form rendering -->
+        </div>
+    </div>
+</div>
+
 <script>
-    let formFields = [];
+    let formFields = JSON.parse('{{ fields | tojson | safe if fields else "[]" }}');
 
-    /* ---------------- DRAG DROP ---------------- */
-
+    /* ---------------- DRAG & DROP LOGIC ---------------- */
     function allowDrop(ev) {
         ev.preventDefault();
+    }
+
+    function onDragEnter(ev) {
+        document.getElementById("dropZone").classList.add("drag-over");
+    }
+
+    function onDragLeave(ev) {
+        document.getElementById("dropZone").classList.remove("drag-over");
     }
 
     function dragField(ev, type) {
@@ -454,86 +710,93 @@
 
     function dropField(ev) {
         ev.preventDefault();
+        document.getElementById("dropZone").classList.remove("drag-over");
         const type = ev.dataTransfer.getData("type");
 
         const field = {
             label: getLabel(type),
-            name: getLabel(type).toLowerCase().replace(/\s+/g, "_"),
+            name: getLabel(type).toLowerCase().replace(/\s+/g, "_") + "_" + Date.now(),
             type: type,
             placeholder: getPlaceholder(type)
         };
-
 
         formFields.push(field);
         renderFields();
     }
 
-    /* ---------------- HELPERS ---------------- */
-
-    function getLabel(type) {
-        if (type === 'text') return "Short Text";
-        if (type === 'textarea') return "Long Text";
-        if (type === 'email') return "Email Address";
-        if (type === 'number') return "Number";
-        if (type === 'date') return "Date";
-        if (type === 'tel') return "Phone Number";
-        if (type === 'time') return "Time";
-        if (type === 'select') return "Dropdown";
-        if (type === 'checkbox') return "I agree to Terms";
-        if (type === 'radio') return "Choose Option";
-    }
-
-    function getPlaceholder(type) {
-        if (type === 'text') return "Enter text";
-        if (type === 'textarea') return "Enter long text";
-        if (type === 'email') return "Enter email";
-        if (type === 'number') return "Enter number";
-        if (type === 'date') return "";
-        if (type === 'tel') return "Enter phone number";
-        if (type === 'time') return "";
-        if (type === 'select') return "Option 1, Option 2";
-        if (type === 'checkbox') return "";
-        if (type === 'radio') return "Yes, No";
-    }
-
-    /* ---------------- RENDER ---------------- */
-
+    /* ---------------- RENDERING ---------------- */
     function renderFields() {
-        const dz = document.getElementById("dropZone");
-        dz.innerHTML = '<div class="helper">Drag new fields from the left panel</div>';
+        const list = document.getElementById("fieldsList");
+        const empty = document.getElementById("emptyState");
+
+        if (formFields.length > 0) {
+            empty.style.display = "none";
+        } else {
+            empty.style.display = "block";
+        }
+
+        list.innerHTML = "";
 
         formFields.forEach((f, i) => {
-            dz.innerHTML += `
-        <div class="form-field">
-
-            <div class="field-header">
-                <label contenteditable="true"
-                       oninput="editLabel(${i}, this.innerText)">
-                       ${f.label} <span>(${f.type})</span>
-                </label>
-
-                <div class="field-actions">
-                    <i class="fa-solid fa-trash"
-                       onclick="deleteField(${i})"></i>
+            const card = document.createElement("div");
+            card.className = "field-card";
+            card.innerHTML = `
+                <div class="field-card-header">
+                    <input type="text" class="field-label-input" value="${f.label}" 
+                           oninput="editLabel(${i}, this.value)">
+                    <div class="field-card-actions">
+                        <div class="field-action-btn edit" title="Field Settings">
+                            <i class="fa fa-cog"></i>
+                        </div>
+                        <div class="field-action-btn" title="Delete Field" onclick="deleteField(${i})">
+                            <i class="fa fa-trash"></i>
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            <input type="${f.type}"
-                   placeholder="${f.placeholder}"
-                   oninput="editPlaceholder(${i}, this.value)">
-        </div>
-        `;
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+                     <span class="field-type-badge">${f.type}</span>
+                </div>
+                <input type="text" class="field-preview-input" value="${f.placeholder}" 
+                       oninput="editPlaceholder(${i}, this.value)" readonly>
+            `;
+            list.appendChild(card);
         });
     }
 
-    /* ---------------- EDIT ---------------- */
-
-    function editLabel(index, value) {
-        formFields[index].label = value.replace(/\(.+\)/, '').trim();
+    /* ---------------- HELPERS ---------------- */
+    function getLabel(type) {
+        const labels = {
+            text: "Short Text",
+            textarea: "Long Text",
+            email: "Email Address",
+            number: "Number Input",
+            date: "Date Picker",
+            tel: "Phone Number",
+            select: "Dropdown Menu",
+            checkbox: "Terms Agreement"
+        };
+        return labels[type] || "New Field";
     }
 
-    function editPlaceholder(index, value) {
-        formFields[index].placeholder = value;
+    function getPlaceholder(type) {
+        const ph = {
+            text: "Enter short text...",
+            textarea: "Enter long description...",
+            email: "example@email.com",
+            number: "0",
+            tel: "+1 234 567 890",
+            select: "Select an option..."
+        };
+        return ph[type] || "";
+    }
+
+    /* ---------------- ACTIONS ---------------- */
+    function editLabel(index, val) {
+        formFields[index].label = val;
+    }
+
+    function editPlaceholder(index, val) {
+        formFields[index].placeholder = val;
     }
 
     function deleteField(index) {
@@ -541,41 +804,74 @@
         renderFields();
     }
 
-    /* ---------------- SAVE TO FLASK ---------------- */
-    function saveForm() {
-
-        fetch("/save_form_builder", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                app_name: "{{ app_name }}",
-                fields: formFields
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-
-                if (data.status === "saved") {
-                    alert("✅ Form saved successfully\n\nAPI KEY: " + data.api_key);
-
-                    // redirect to integration page
-                    window.location.href = "/integration";
-                } else {
-                    alert("❌ Error saving form");
-                }
-
-            })
-            .catch(err => {
-                alert("Server Error");
-                console.log(err);
-            });
-
+    function toggleActions(e) {
+        e.stopPropagation();
+        document.getElementById("actionsMenu").classList.toggle("open");
     }
 
+    function openPreview() {
+        const modal = document.getElementById("previewModal");
+        const body = document.getElementById("previewBody");
+        modal.style.display = "flex";
 
-    /* attach to SAVE button */
-    document.querySelector(".save").onclick = function () {
+        if (formFields.length === 0) {
+            body.innerHTML = "<p style='text-align:center; color:var(--text-dim);'>Form is empty. Add fields to see preview.</p>";
+            return;
+        }
 
+        let html = `<div style="max-width: 500px; margin: 0 auto;">`;
+        html += `<h2 style="margin-bottom: 30px; text-align: center;">${document.querySelector('.setting-input').value}</h2>`;
+
+        formFields.forEach(f => {
+            html += `<div style="margin-bottom: 24px;">
+                        <label style="display:block; font-size: 14px; font-weight: 600; margin-bottom: 8px;">${f.label}</label>`;
+
+            if (f.type === 'textarea') {
+                html += `<textarea class="setting-input" style="height: 100px;" placeholder="${f.placeholder}"></textarea>`;
+            } else if (f.type === 'select') {
+                html += `<select class="setting-input"><option>${f.placeholder}</option></select>`;
+            } else {
+                html += `<input type="${f.type}" class="setting-input" placeholder="${f.placeholder}">`;
+            }
+            html += `</div>`;
+        });
+
+        html += `<button class="btn-primary-fb" style="width:100%; height: 48px; margin-top: 20px;">Submit Form</button>`;
+        html += `</div>`;
+        body.innerHTML = html;
+    }
+
+    function closePreview() {
+        document.getElementById("previewModal").style.display = "none";
+    }
+
+    function switchFieldTab(tab) {
+        const tabs = document.querySelectorAll('.field-tab');
+        tabs.forEach(t => t.classList.remove('active'));
+        if (tab === 'basic') tabs[0].classList.add('active');
+        else tabs[1].classList.add('active');
+    }
+
+    function filterFields(query) {
+        const items = document.querySelectorAll('.field-lib-item');
+        items.forEach(item => {
+            const text = item.innerText.toLowerCase();
+            if (text.includes(query.toLowerCase())) {
+                item.style.display = "flex";
+            } else {
+                item.style.display = "none";
+            }
+        });
+    }
+
+    // Dismiss dropdowns on click outside
+    document.addEventListener("click", function (e) {
+        const menu = document.getElementById("actionsMenu");
+        if (menu && !menu.contains(e.target)) menu.classList.remove("open");
+    });
+
+    /* ---------------- SAVE TO FLASK ---------------- */
+    function saveForm() {
         fetch("/save_form_builder", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -586,14 +882,53 @@
         })
             .then(res => res.json())
             .then(data => {
-                alert("Form Saved Successfully!\n\nAPI KEY: " + data.api_key);
-
-                // redirect to integration page
-                window.location.href = "/integration";
+                if (data.status === "saved") {
+                    showToast("✅ Form saved successfully!");
+                    // Keep brief delay before redirect
+                    setTimeout(() => {
+                        window.location.href = "/client/application/{{ app_name }}/dashboard";
+                    }, 1000);
+                } else {
+                    showToast("❌ Error saving form");
+                }
+            })
+            .catch(err => {
+                showToast("Server Error");
+                console.log(err);
             });
+    }
 
-    };
+    function autoGenerateFields() {
+        if (formFields.length > 0) {
+            if (!confirm("This will overwrite your current form fields. Proceed?")) {
+                return;
+            }
+        }
+
+        fetch("/client/application/{{ app_name }}/template")
+            .then(res => res.json())
+            .then(data => {
+                if (data.fields && data.fields.length > 0) {
+                    formFields = data.fields;
+                    renderFields();
+                    showToast("✨ Form auto-generated!");
+                } else {
+                    showToast("No template found for this application type.");
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                showToast("Error generating form template.");
+            });
+    }
+
+    // Attach to Save Buttons
+    document.getElementById("saveBtnTop").onclick = saveForm;
+    document.getElementById("autoGenerateBtn").onclick = autoGenerateFields;
+
+    // Initial Render
+    renderFields();
+
 </script>
-
 
 {% endblock %}

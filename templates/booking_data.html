@@ -1,116 +1,176 @@
 {% extends "layout.html" %}
-
 {% block content %}
 
-<div class="saas-container">
+<div class="header">
+    <h1>Booking Management</h1>
+    <p style="color: var(--text-dim); font-size: 13px;">Review and manage booking requests from your applications in
+        real-time.</p>
+</div>
 
-    <!-- PAGE HEADER -->
-    <div class="page-head">
-        <div>
-            <h1>Booking Management</h1>
-            <p>Review and manage booking requests from your applications</p>
-        </div>
+<!-- OPS KPI GRID -->
+<div class="ops-kpi-grid">
+    <div class="ops-kpi-card kpi-total">
+        <div class="label">Total Requests <i class="fa fa-layer-group"></i></div>
+        <div class="value" id="stat-total">{{total}}</div>
+    </div>
+    <div class="ops-kpi-card kpi-approved">
+        <div class="label">Approved <i class="fa fa-check-circle"></i></div>
+        <div class="value" id="stat-approved">{{approved}}</div>
+    </div>
+    <div class="ops-kpi-card kpi-pending">
+        <div class="label">Pending <i class="fa fa-clock"></i></div>
+        <div class="value" id="stat-pending">{{pending}}</div>
+    </div>
+    <div class="ops-kpi-card kpi-rejected">
+        <div class="label">Rejected <i class="fa fa-times-circle"></i></div>
+        <div class="value" id="stat-rejected">{{rejected}}</div>
+    </div>
+</div>
 
-        <div class="head-actions">
-            <select id="appFilter" onchange="filterByApp(this.value)">
-                <option value="">All Applications</option>
-                {% for a in apps %}
-                <option value="{{a}}">{{a}}</option>
-                {% endfor %}
-            </select>
+<!-- FILTER TABS -->
+<div class="filter-tabs-row">
+    <div class="filter-tab active" onclick="filterByStatus('ALL', this)">All Requests</div>
+    <div class="filter-tab" onclick="filterByStatus('APPROVED', this)">Approved</div>
+    <div class="filter-tab" onclick="filterByStatus('PENDING', this)">Pending</div>
+    <div class="filter-tab" onclick="filterByStatus('REJECTED', this)">Rejected</div>
+</div>
 
-            <button onclick="exportCSV()">Export CSV</button>
-        </div>
+<!-- TABLE TOOLBAR -->
+<div class="table-toolbar">
+    <div class="toolbar-search">
+        <i class="fa fa-search"></i>
+        <input type="text" id="bookingSearch" placeholder="Search by name or phone..." onkeyup="searchBookings()">
     </div>
 
+    <select class="toolbar-select" id="appFilter" onchange="filterByApp(this.value)">
+        <option value="">All Applications</option>
+        {% for a in apps %}
+        <option value="{{a}}">{{a}}</option>
+        {% endfor %}
+    </select>
 
-    <!-- KPI ROW -->
-    <div class="stats-row">
+    <select class="toolbar-select">
+        <option>All Time</option>
+        <option>Today</option>
+        <option>Last 7 Days</option>
+        <option>Last 30 Days</option>
+    </select>
 
-        <div class="stat-box">
-            <span>Total</span>
-            <h2 id="stat-total">{{total}}</h2>
-        </div>
+    <button class="btn-primary" onclick="exportCSV()" style="height: 36px; padding: 0 16px; font-size: 12px;">
+        <i class="fa fa-download"></i> Export CSV
+    </button>
+</div>
 
-        <div class="stat-box">
-            <span>Approved</span>
-            <h2 id="stat-approved">{{approved}}</h2>
-        </div>
-
-        <div class="stat-box">
-            <span>Rejected</span>
-            <h2 id="stat-rejected">{{rejected}}</h2>
-        </div>
-
-        <div class="stat-box">
-            <span>Pending</span>
-            <h2 id="stat-pending">{{pending}}</h2>
-        </div>
-
-    </div>
-
-
-    <!-- TABLE -->
-    <div class="table-wrapper">
-        <table class="saas-table">
+<!-- TABLE CARD -->
+<div class="card" style="padding: 0; overflow: hidden;">
+    <div class="table-responsive">
+        <table class="table saas-table" id="bookingTable">
             <thead>
                 <tr>
-                    <th>User</th>
-                    <th>Phone</th>
+                    <th>User Detail</th>
                     <th>Application</th>
-                    <th>Call Initiated</th>
-                    <th>Time</th>
+                    <th>Call</th>
+                    <th>Requested Time</th>
+                    <th>Scheduled Call Time</th>
                     <th>Status</th>
-                    <th></th>
+                    <th style="text-align:right">Actions</th>
                 </tr>
             </thead>
-
             <tbody>
-                {% for row in data %}
-                <tr data-id="{{row._id}}" data-app="{{row.app_name}}" onclick="toggleDetails('{{row._id}}')"
-                    style="cursor: pointer;">
+                {% if not data %}
+                <tr>
+                    <td colspan="6" style="padding: 60px 20px; text-align: center;">
+                        <i class="fa fa-inbox"
+                            style="font-size: 40px; color: var(--text-dim); margin-bottom: 12px; display: block;"></i>
+                        <span style="color: var(--text-dim); font-weight: 600;">No booking requests yet</span>
+                    </td>
+                </tr>
+                {% endif %}
 
-                    <td><strong>{{row.name}}</strong></td>
-                    <td>{{row.phone}}</td>
-                    <td>{{row.app_name}}</td>
+                {% for row in data %}
+                <tr data-id="{{row._id}}" data-app="{{row.app_name}}" data-status="{{row.status}}"
+                    onclick="toggleDetails('{{row._id}}')" style="cursor: pointer;">
                     <td>
-                        {% if row.call_initiated or row.call_initiated_at %}
-                        <span style="color: #22c55e; font-weight: 600;">✓ Yes</span>
+                        <div style="display: flex; flex-direction: column;">
+                            <span style="color: var(--text-bright); font-weight: 600;">{{row.name}}</span>
+                            <span style="color: var(--text-dim); font-size: 11px;">{{row.phone}}</span>
+                        </div>
+                    </td>
+                    <td><span
+                            style="background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 4px; font-size: 11px;">{{row.app_name}}</span>
+                    </td>
+                    <td>
+                        {% if row.call_status %}
+                        <span
+                            style="color: {% if row.call_status == 'completed' %}var(--success){% elif row.call_status == 'failed' or row.call_status == 'busy' or row.call_status == 'no-answer' %}var(--danger){% else %}var(--primary){% endif %}; font-weight: 700; font-size: 11px; text-transform: capitalize;">
+                            <i
+                                class="fa {% if row.call_status == 'completed' %}fa-check-double{% elif row.call_status == 'ringing' %}fa-bell{% else %}fa-phone-volume{% endif %}"></i>
+                            {{ row.call_status | replace('-', ' ') | title }}
+                        </span>
+                        {% elif row.call_initiated or row.call_initiated_at %}
+                        <span style="color: var(--success); font-weight: 700; font-size: 11px;"><i
+                                class="fa fa-check-circle"></i> Form Call</span>
                         {% else %}
-                        <span style="color: #94a3b8;">✕ No</span>
+                        <span style="color: var(--text-dim); font-size: 11px;"><i class="fa fa-minus-circle"></i>
+                            Waiting</span>
                         {% endif %}
                     </td>
-                    <td>{{row.time}}</td>
+                    <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #a5d6ff;">{{row.time}}
+                    </td>
+                    <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--primary);">
+                        {% if row.call_time %}
+                        {{ row.call_time.strftime('%Y-%m-%d %I:%M %p') }}
+                        {% else %}
+                        <span style="color: var(--text-dim); font-style: italic;">No Schedule</span>
+                        {% endif %}
+                    </td>
                     <td>
-                        <span class="badge {{row.status}}">
+                        <span class="status-pill {{row.status}}">
+                            <span class="status-dot"></span>
                             {{row.status}}
                         </span>
                     </td>
-                    <td class="actions" onclick="event.stopPropagation();">
-                        {% if row.status == "PENDING" %}
-                        <a href="/approve/{{row._id|string}}" class="icon-btn ok">✓</a>
-                        <a href="/reject/{{row._id|string}}" class="icon-btn no">✕</a>
-                        {% endif %}
+                    <td style="text-align:right" onclick="event.stopPropagation();">
+                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                            {% if row.status == "PENDING" %}
+                            <a href="/approve/{{row._id|string}}" class="action-icon approve" title="Approve Request">
+                                <i class="fa fa-check"></i>
+                            </a>
+                            <a href="/reject/{{row._id|string}}" class="action-icon reject" title="Reject Request">
+                                <i class="fa fa-times"></i>
+                            </a>
+                            {% else %}
+                            <span
+                                style="color: var(--text-dim); font-size: 10px; font-weight: 700; text-transform: uppercase;">Processed</span>
+                            {% endif %}
+                        </div>
                     </td>
-
-
                 </tr>
 
                 <!-- Expandable Details Row -->
-                <tr id="details-{{row._id}}" class="details-row" style="display: none;">
-                    <td colspan="7">
-                        <div class="details-content">
-                            <h4>📋 All Form Data</h4>
-                            <div class="form-data-grid">
+                <tr id="details-{{row._id}}" style="display: none;">
+                    <td colspan="7" style="padding: 0; background: rgba(0, 0, 0, 0.2);">
+                        <div
+                            style="padding: 20px; border-top: 1px solid var(--border-color); border-bottom: 2px solid var(--border-color);">
+                            <h4
+                                style="margin: 0 0 16px 0; font-size: 12px; color: var(--primary); text-transform: uppercase; letter-spacing: 0.1em; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa fa-clipboard-list"></i> Detailed Form Submission Data
+                            </h4>
+                            <div
+                                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;">
                                 {% if row.data %}
                                 {% for key, value in row.data.items() %}
-                                <div class="data-item">
-                                    <span class="data-label">{{key}}:</span>
-                                    <span class="data-value">{{value}}</span>
+                                <div
+                                    style="background: var(--bg-input); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                                    <span
+                                        style="display: block; font-size: 10px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">{{key}}</span>
+                                    <span
+                                        style="display: block; font-size: 13px; color: var(--text-bright); font-weight: 500;">{{value}}</span>
                                 </div>
                                 {% endfor %}
                                 {% else %}
-                                <p style="color: #94a3b8;">No additional form data</p>
+                                <p style="color: var(--text-dim); font-size: 13px; font-style: italic;">No additional
+                                    form metadata captured.</p>
                                 {% endif %}
                             </div>
                         </div>
@@ -120,287 +180,97 @@
             </tbody>
         </table>
     </div>
-
 </div>
 
-
-<style>
-    /* ===== SAAS PAGE LAYOUT ===== */
-
-    .saas-container {
-        max-width: 1200px;
-        margin: 40px auto;
-    }
-
-    /* HEADER */
-    .page-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 30px;
-    }
-
-    .page-head h1 {
-        font-size: 26px;
-        font-weight: 600;
-        margin: 0;
-    }
-
-    .page-head p {
-        margin-top: 6px;
-        font-size: 14px;
-        color: #94a3b8;
-    }
-
-    .head-actions {
-        display: flex;
-        gap: 12px;
-    }
-
-    .head-actions select,
-    .head-actions button {
-        height: 36px;
-        padding: 0 14px;
-        border-radius: 6px;
-        border: 1px solid #1e293b;
-        background: #0f172a;
-        color: #e2e8f0;
-        font-size: 13px;
-    }
-
-    /* KPI */
-    .stats-row {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 18px;
-        margin-bottom: 28px;
-    }
-
-    .stat-box {
-        background: #0f172a;
-        border: 1px solid #1e293b;
-        border-radius: 10px;
-        padding: 18px;
-    }
-
-    .stat-box span {
-        font-size: 13px;
-        color: #94a3b8;
-    }
-
-    .stat-box h2 {
-        margin-top: 8px;
-        font-weight: 600;
-    }
-
-    /* TABLE */
-    .table-wrapper {
-        background: #0f172a;
-        border: 1px solid #1e293b;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    .saas-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 14px;
-    }
-
-    .saas-table thead {
-        background: #0b1220;
-    }
-
-    .saas-table th {
-        text-align: left;
-        padding: 14px 18px;
-        font-weight: 600;
-        color: #94a3b8;
-        font-size: 13px;
-    }
-
-    .saas-table td {
-        padding: 16px 18px;
-        border-top: 1px solid #1e293b;
-    }
-
-    .saas-table tbody tr:hover {
-        background: #0b1220;
-    }
-
-    /* STATUS BADGE */
-    .badge {
-        padding: 4px 10px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: 600;
-    }
-
-    .badge.PENDING {
-        background: #facc15;
-        color: #000;
-    }
-
-    .badge.APPROVED {
-        background: #22c55e;
-    }
-
-    .badge.REJECTED {
-        background: #ef4444;
-    }
-
-    /* ACTIONS */
-    .actions {
-        text-align: right;
-    }
-
-    .icon-btn {
-        padding: 6px 10px;
-        border-radius: 6px;
-        margin-left: 6px;
-        text-decoration: none;
-        font-weight: 600;
-    }
-
-    .icon-btn.ok {
-        background: #22c55e;
-        color: white;
-    }
-
-    .icon-btn.no {
-        background: #ef4444;
-        color: white;
-    }
-
-    /* Expandable Details Styling */
-    .details-row {
-        background: #0a1219 !important;
-    }
-
-    .details-content {
-        padding: 20px;
-        background: linear-gradient(145deg, #0e2230, #0b1720);
-        border-radius: 8px;
-        border: 1px solid #1e3a4c;
-    }
-
-    .details-content h4 {
-        margin: 0 0 16px 0;
-        color: #e6edf3;
-        font-size: 16px;
-    }
-
-    .form-data-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 12px;
-    }
-
-    .data-item {
-        background: #0b1720;
-        padding: 10px 14px;
-        border-radius: 6px;
-        border: 1px solid #1c3344;
-    }
-
-    .data-label {
-        display: block;
-        font-size: 11px;
-        color: #94a3b8;
-        text-transform: uppercase;
-        margin-bottom: 4px;
-        font-weight: 600;
-    }
-
-    .data-value {
-        display: block;
-        font-size: 14px;
-        color: #e6edf3;
-        font-weight: 500;
-    }
-</style>
 <script>
-
     function toggleDetails(id) {
         const detailsRow = document.getElementById('details-' + id);
-        if (detailsRow.style.display === 'none') {
-            detailsRow.style.display = 'table-row';
-        } else {
-            detailsRow.style.display = 'none';
-        }
+        detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
     }
 
-    function updateStatus(id, status) {
-
-        fetch("/client/update_booking_status", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                id: id,
-                status: status
-            })
-        })
-            .then(res => res.json())
-            .then(res => {
-                if (res.success) {
-                    // 🔁 update UI without reload
-                    const row = document.querySelector(`[data-id="${id}"]`)
-                    const badge = row.querySelector(".badge")
-
-                    badge.className = "badge " + status
-                    badge.innerText = status
-
-                    row.querySelector(".actions").innerHTML = ""
-
-                    updateStats(status)
-
-                } else {
-                    alert("Error updating")
-                }
-            })
+    function exportCSV() {
+        let csv = [];
+        let rows = document.querySelectorAll("table tr:not([id^='details'])");
+        rows.forEach(row => {
+            let cols = row.querySelectorAll("td, th");
+            let data = Array.from(cols).map(c => {
+                let text = c.innerText.replace(/\n/g, ' ').trim();
+                return '"' + text + '"';
+            }).join(",");
+            csv.push(data);
+        });
+        let blob = new Blob([csv.join("\n")], { type: "text/csv" });
+        let a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "connexhub_bookings_" + new Date().toISOString().slice(0, 10) + ".csv";
+        a.click();
     }
-
-    function updateStats(status) {
-
-        let total = parseInt(document.getElementById("stat-total").innerText)
-        let approved = parseInt(document.getElementById("stat-approved").innerText)
-        let rejected = parseInt(document.getElementById("stat-rejected").innerText)
-        let pending = parseInt(document.getElementById("stat-pending").innerText)
-
-        pending--
-
-        if (status === "APPROVED") approved++
-        if (status === "REJECTED") rejected++
-
-        document.getElementById("stat-approved").innerText = approved
-        document.getElementById("stat-rejected").innerText = rejected
-        document.getElementById("stat-pending").innerText = pending
-    }
-
 
     function filterByApp(app) {
-        let rows = document.querySelectorAll("tbody tr");
-
-        rows.forEach(row => {
+        document.querySelectorAll("tbody tr:not([id^='details'])").forEach(row => {
             let rowApp = row.getAttribute("data-app");
+            let statusMatch = true;
+            // Integrate with status filter if present
+            const activeTab = document.querySelector('.filter-tab.active').innerText.toUpperCase();
+            if (activeTab !== 'ALL REQUESTS') {
+                const rowStatus = row.getAttribute('data-status');
+                statusMatch = (activeTab.includes(rowStatus));
+            }
 
-            // show all if empty
-            if (app === "" || app === "All") {
+            if ((app === "" || rowApp === app) && statusMatch) {
                 row.style.display = "";
-            }
-            else if (rowApp === app) {
-                row.style.display = "";
-            }
-            else {
+            } else {
                 row.style.display = "none";
+                const detailsRow = document.getElementById('details-' + row.getAttribute('data-id'));
+                if (detailsRow) detailsRow.style.display = "none";
             }
         });
     }
 
+    function filterByStatus(status, tab) {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        const app = document.getElementById('appFilter').value;
+
+        document.querySelectorAll("tbody tr:not([id^='details'])").forEach(row => {
+            let rowStatus = row.getAttribute("data-status");
+            let rowApp = row.getAttribute("data-app");
+
+            let statusMatch = (status === 'ALL' || rowStatus === status);
+            let appMatch = (app === "" || rowApp === app);
+
+            if (statusMatch && appMatch) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+                const detailsRow = document.getElementById('details-' + row.getAttribute('data-id'));
+                if (detailsRow) detailsRow.style.display = "none";
+            }
+        });
+    }
+
+    function searchBookings() {
+        const input = document.getElementById('bookingSearch').value.toLowerCase();
+        const app = document.getElementById('appFilter').value;
+        const activeTab = document.querySelector('.filter-tab.active').innerText.toUpperCase();
+
+        document.querySelectorAll("tbody tr:not([id^='details'])").forEach(row => {
+            const text = row.innerText.toLowerCase();
+            const rowApp = row.getAttribute("data-app");
+            const rowStatus = row.getAttribute("data-status");
+
+            let searchMatch = text.includes(input);
+            let appMatch = (app === "" || rowApp === app);
+            let statusMatch = (activeTab === 'ALL REQUESTS' || activeTab.includes(rowStatus));
+
+            if (searchMatch && appMatch && statusMatch) {
+                row.style.display = "";
+            } else {
+                row.style.display = "none";
+            }
+        });
+    }
 </script>
-
-
 
 {% endblock %}

@@ -1,20 +1,723 @@
 {% extends "layout.html" %}
 {% block content %}
-<h2>All Clients</h2>
 
-<table class="calls-table">
-    <tr>
-        <th>Client ID</th>
-        <th>Company</th>
-        <th>Email</th>
-    </tr>
+<div class="client-mgmt-wrap" style="padding: 24px; background: #020617; min-height: 100vh;">
 
-    {% for c in clients %}
-    <tr>
-        <td>{{ c._id }}</td>
-        <td>{{ c.company_name }}</td>
-        <td>{{ c.email }}</td>
-    </tr>
-    {% endfor %}
-</table>
+    <!-- 1. HEADER SECTION -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+        <div>
+            <h1 style="font-size: 22px; font-weight: 700; color: #f8fafc; margin: 0;">Client Management</h1>
+            <p style="font-size: 13px; color: #64748b; margin: 4px 0 0 0;">Manage registrations, applications, and
+                public forms</p>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <button onclick="openAddClientModal()"
+                style="background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2); padding: 0 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; height: 34px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa fa-user-plus"></i> Add New Client
+            </button>
+            <button onclick="window.location.href='/admin/export-clients'"
+                style="background: #0f172a; border: 1px solid #1e293b; color: #f8fafc; padding: 0 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; height: 34px; display: flex; align-items: center; gap: 6px;">
+                <i class="fa fa-file-export"></i> Export Clients
+            </button>
+        </div>
+    </div>
+
+    <!-- 3. CLIENT SUMMARY CARDS -->
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px;">
+        <div class="kpi-mini">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div class="kpi-label">Total Clients</div>
+                    <div class="kpi-val">{{ stats.total }}</div>
+                </div>
+                <div class="kpi-icon"><i class="fa fa-users"></i></div>
+            </div>
+            <div class="kpi-subText">System total</div>
+        </div>
+        <div class="kpi-mini">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div class="kpi-label">Active Clients</div>
+                    <div class="kpi-val" style="color: #22c55e;">{{ stats.active }}</div>
+                </div>
+                <div class="kpi-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;"><i
+                        class="fa fa-check-circle"></i></div>
+            </div>
+            <div class="kpi-subText">With live activity</div>
+        </div>
+        <div class="kpi-mini">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div class="kpi-label">Apps Created</div>
+                    <div class="kpi-val" style="color: #00e5ff;">{{ stats.apps }}</div>
+                </div>
+                <div class="kpi-icon" style="background: rgba(0, 229, 255, 0.1); color: #00e5ff;"><i
+                        class="fa fa-cube"></i></div>
+            </div>
+            <div class="kpi-subText">Application count</div>
+        </div>
+        <div class="kpi-mini">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div class="kpi-label">Forms Generated</div>
+                    <div class="kpi-val" style="color: #f59e0b;">{{ stats.forms }}</div>
+                </div>
+                <div class="kpi-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;"><i
+                        class="fa fa-file-invoice"></i></div>
+            </div>
+            <div class="kpi-subText">Public form links</div>
+        </div>
+    </div>
+
+    <!-- 2. SEARCH + FILTER BAR -->
+    <div style="display: flex; gap: 12px; margin-bottom: 20px; align-items: center;">
+        <div style="flex: 1; position: relative;">
+            <i class="fa fa-search"
+                style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 13px;"></i>
+            <input type="text" id="clientSearch" placeholder="Search by Client ID, Company, Email"
+                style="width: 100%; height: 38px; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding-left: 38px; color: #f8fafc; font-size: 13px; transition: border-color 0.2s;">
+        </div>
+        <div style="position: relative;">
+            <i class="fa fa-filter"
+                style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 12px;"></i>
+            <select id="clientFilter"
+                style="width: 160px; height: 38px; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; color: #f8fafc; padding: 0 12px 0 32px; font-size: 13px; cursor: pointer; appearance: none;">
+                <option>All Status</option>
+                <option>Active</option>
+                <option>Inactive</option>
+            </select>
+            <i class="fa fa-chevron-down"
+                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 10px; pointer-events: none;"></i>
+        </div>
+    </div>
+
+    <!-- 4. MAIN CLIENT TABLE -->
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <div class="table-responsive">
+            <table class="saas-table" id="clientsTable">
+                <thead>
+                    <tr>
+                        <th style="width: 220px;">Client ID</th>
+                        <th>Company Name</th>
+                        <th>Email</th>
+                        <th style="text-align: center;">Total Apps</th>
+                        <th style="text-align: center;">Total Calls</th>
+                        <th style="text-align: center;">Status</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in clients %}
+                    <tr class="client-row" onclick="toggleExpand('{{ c.id }}')">
+                        <td><code style="color: #00e5ff; font-weight: 600; font-size: 11px;">{{ c.id }}</code></td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div class="initial-circle">{{ c.company_name[0] }}</div>
+                                <span style="font-weight: 600; color: #f8fafc;">{{ c.company_name }}</span>
+                            </div>
+                        </td>
+                        <td style="font-size: 13px;">{{ c.email }}</td>
+                        <td style="text-align: center;">
+                            <span class="count-pill"
+                                style="background: rgba(0, 229, 255, 0.1); color: #00e5ff; border: 1px solid rgba(0, 229, 255, 0.2);">{{
+                                c.app_count }}</span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="count-pill">{{ c.total_calls }}</span>
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="status-pill {{ c.status | upper }}">{{ c.status }}</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                                <button class="btn-micro" onclick="event.stopPropagation(); toggleExpand('{{ c.id }}')"
+                                    title="View Applications">Apps</button>
+                                <button class="btn-micro" onclick="event.stopPropagation(); toggleExpand('{{ c.id }}')"
+                                    title="View Forms">Forms</button>
+                                <button class="btn-micro"
+                                    onclick="event.stopPropagation(); window.location.href='/client/{{ c.id }}/dashboard'"
+                                    title="View Analytics">Analytics</button>
+                                <button class="btn-micro" style="color: #ef4444; border-color: rgba(239, 68, 68, 0.2);"
+                                    onclick="confirmDelete('{{ c.id }}'); event.stopPropagation();"
+                                    title="Delete Client">Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- 5. CLIENT DETAILS EXPAND -->
+                    <tr class="expand-row" id="expand-{{ c.id }}" style="display: none;">
+                        <td colspan="7" style="padding: 0; background: rgba(0,0,0,0.2);">
+                            <div class="expand-content" style="padding: 24px; border-bottom: 2px solid #1e293b;">
+                                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 32px;">
+                                    <!-- Client info -->
+                                    <div class="details-section">
+                                        <h4 class="detail-title">Client Information</h4>
+                                        <div class="detail-grid">
+                                            <div class="detail-item">
+                                                <label>Company Name</label>
+                                                <span>{{ c.company_name }}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <label>Representative</label>
+                                                <span>{{ c.name or 'N/A' }}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <label>Email Address</label>
+                                                <span>{{ c.email }}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <label>Phone Number</label>
+                                                <span>{{ c.phone or 'Not provided' }}</span>
+                                            </div>
+                                            <div class="detail-item">
+                                                <label>Member Since</label>
+                                                <span>{{ c.created_at.strftime('%B %d, %Y') if c.created_at else '—'
+                                                    }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Applications table -->
+                                    <div class="details-section">
+                                        <h4 class="detail-title">Applications List</h4>
+                                        <table class="saas-table sub-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>App Name</th>
+                                                    <th>Status</th>
+                                                    <th>Form Status</th>
+                                                    <th style="text-align: right;">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% if c.apps %}
+                                                {% for app in c.apps %}
+                                                <tr>
+                                                    <td><strong>{{ app.app_name }}</strong></td>
+                                                    <td><span class="dot-live"></span> Live</td>
+                                                    <td>{{ 'Configured' if app.has_form else 'Pending' }}</td>
+                                                    <td style="text-align: right;">
+                                                        <a href="/form/{{ c.id }}/{{ app.app_name }}" target="_blank"
+                                                            class="btn-micro primary">Open Public Form</a>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                                {% else %}
+                                                <tr>
+                                                    <td colspan="4"
+                                                        style="text-align: center; padding: 12px; color: #64748b;">No
+                                                        applications found.</td>
+                                                </tr>
+                                                {% endif %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- PAGINATION SECTION -->
+        <div
+            style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #1e293b; background: rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; color: #64748b;">
+                Showing <span style="color: #f8fafc; font-weight: 600;">1</span> to <span
+                    style="color: #f8fafc; font-weight: 600;">{{ clients|length }}</span> of <span
+                    style="color: #f8fafc; font-weight: 600;">{{ stats.total }}</span> clients
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-micro" disabled style="opacity: 0.5;">Previous</button>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-micro primary" style="width: 32px; padding: 0;">1</button>
+                </div>
+                <button class="btn-micro" disabled style="opacity: 0.5;">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. EMPTY STATE DESIGN -->
+    {% if not clients %}
+    <div class="empty-state">
+        <div class="empty-icon"><i class="fa fa-users-slash"></i></div>
+        <h2 style="font-size: 18px; color: #f8fafc; margin-bottom: 8px;">No clients found</h2>
+        <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">Try adjusting your search or add a new client
+            to get started.</p>
+        <button onclick="openAddClientModal()"
+            style="background: var(--cyan); color: #020617; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 13px;">
+            <i class="fa fa-plus"></i> Add First Client
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- ADD CLIENT MODAL -->
+    <div id="addClientModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size:18px;">Register New Client</h3>
+                <button class="close-modal" onclick="closeAddClientModal()">&times;</button>
+            </div>
+            <form action="/admin/create-client" method="POST" style="padding: 24px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label>Company Name</label>
+                        <input type="text" name="company_name" required placeholder="e.g. Acme Corp">
+                    </div>
+                    <div class="form-group">
+                        <label>Representative Name</label>
+                        <input type="text" name="name" required placeholder="Full Name">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" required placeholder="client@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="text" name="number" required placeholder="+91 0000000000">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Password</label>
+                        <input type="password" name="password" required placeholder="••••••••">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end;">
+                    <button type="button" class="btn-modal-cancel" onclick="closeAddClientModal()">Cancel</button>
+                    <button type="submit" class="btn-modal-submit">Register Client</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    /* SAAS CLIENT MGMT STYLES */
+    :root {
+        --bg: #020617;
+        --card: #0f172a;
+        --border: #1e293b;
+        --primary-text: #f8fafc;
+        --secondary-text: #94a3b8;
+        --cyan: #00e5ff;
+        --teal: #14b8a6;
+    }
+
+    .kpi-mini {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 16px;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .kpi-mini:hover {
+        border-color: rgba(0, 229, 255, 0.3);
+        background: rgba(15, 23, 42, 0.8);
+    }
+
+    .kpi-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    .kpi-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+    }
+
+    .kpi-val {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary-text);
+        line-height: 1.2;
+    }
+
+    .kpi-subText {
+        font-size: 10px;
+        color: #475569;
+        margin-top: 4px;
+    }
+
+    .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-bottom: 20px;
+    }
+
+    .saas-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .saas-table th {
+        text-align: left;
+        font-size: 10px;
+        font-weight: 700;
+        color: #64748b;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    .saas-table td {
+        padding: 10px 16px;
+        font-size: 13px;
+        color: var(--secondary-text);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    }
+
+    .client-row {
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .client-row:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .initial-circle {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #14b8a6, #00e5ff);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 12px;
+    }
+
+    .count-pill {
+        background: #1e293b;
+        color: #f8fafc;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .btn-micro {
+        background: transparent;
+        border: 1px solid #334155;
+        color: #94a3b8;
+        padding: 3px 8px;
+        border-radius: 5px;
+        font-size: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-micro:hover {
+        border-color: var(--cyan);
+        color: var(--cyan);
+        background: rgba(0, 229, 255, 0.05);
+    }
+
+    .status-pill {
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .status-pill.ACTIVE {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+        border: 1px solid rgba(34, 197, 94, 0.1);
+    }
+
+    .status-pill.INACTIVE {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.1);
+    }
+
+    .dots-menu {
+        position: relative;
+    }
+
+    .dots-trigger {
+        font-size: 20px;
+        padding: 0 10px;
+        color: #64748b;
+        cursor: pointer;
+        border-radius: 6px;
+    }
+
+    .dots-trigger:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #f8fafc;
+    }
+
+    .dropdown-content {
+        display: none;
+        position: absolute;
+        right: 0;
+        bottom: 100%;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        min-width: 180px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        z-index: 100;
+    }
+
+    .dots-menu:hover .dropdown-content {
+        display: block;
+    }
+
+    .dropdown-content a,
+    .dropdown-content button {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 10px 16px;
+        color: #f8fafc;
+        font-size: 13px;
+        text-decoration: none;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        text-align: left;
+    }
+
+    .dropdown-content a:hover,
+    .dropdown-content button:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Expand details */
+    .detail-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+        letter-spacing: 1px;
+    }
+
+    .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .detail-item label {
+        display: block;
+        font-size: 11px;
+        color: #64748b;
+        margin-bottom: 4px;
+    }
+
+    .detail-item span {
+        font-weight: 600;
+        color: #e2e8f0;
+        font-size: 14px;
+    }
+
+    .sub-table th {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .dot-live {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #22c55e;
+        border-radius: 50%;
+        margin-right: 6px;
+        box-shadow: 0 0 5px #22c55e;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #64748b;
+    }
+
+    .empty-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+
+    .empty-state h2 {
+        color: #f8fafc;
+        margin-bottom: 8px;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-card {
+        background: #0f172a;
+        width: 100%;
+        max-width: 500px;
+        border-radius: 12px;
+        border: 1px solid #1e293b;
+        overflow: hidden;
+        animation: modalSlide 0.3s ease-out;
+    }
+
+    @keyframes modalSlide {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header {
+        padding: 16px 24px;
+        background: rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid #1e293b;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .close-modal {
+        background: transparent;
+        border: none;
+        color: #64748b;
+        font-size: 24px;
+        cursor: pointer;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .form-group input {
+        width: 100%;
+        height: 38px;
+        background: #020617;
+        border: 1px solid #1e293b;
+        border-radius: 6px;
+        padding: 0 12px;
+        color: white;
+        font-size: 13px;
+    }
+
+    .btn-modal-submit {
+        background: var(--cyan);
+        color: #020617;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 13px;
+        cursor: pointer;
+    }
+
+    .btn-modal-cancel {
+        background: transparent;
+        border: 1px solid #1e293b;
+        color: #64748b;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+    }
+</style>
+
+<script>
+    function toggleExpand(id) {
+        const row = document.getElementById('expand-' + id);
+        if (row.style.display === 'none') {
+            // Close others
+            document.querySelectorAll('.expand-row').forEach(r => r.style.display = 'none');
+            row.style.display = 'table-row';
+            // Scroll into view gently
+            row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            row.style.display = 'none';
+        }
+    }
+
+    function openAddClientModal() {
+        document.getElementById('addClientModal').style.display = 'flex';
+    }
+
+    function closeAddClientModal() {
+        document.getElementById('addClientModal').style.display = 'none';
+    }
+
+    function confirmDelete(id) {
+        if (confirm('Are you sure you want to delete this client? This action will remove all related applications and form data.')) {
+            window.location.href = '/admin/delete-client/' + id;
+        }
+    }
+
+    // Search functionality
+    document.getElementById('clientSearch').addEventListener('input', function (e) {
+        const term = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('.client-row');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(term) ? '' : 'none';
+        });
+    });
+
+    // Filter functionality
+    document.getElementById('clientFilter').addEventListener('change', function (e) {
+        const value = e.target.value;
+        const rows = document.querySelectorAll('.client-row');
+        rows.forEach(row => {
+            const status = row.querySelector('.status-pill').innerText.trim();
+            if (value === 'All Status') {
+                row.style.display = '';
+            } else if (value === 'Active' && status === 'Active') {
+                row.style.display = '';
+            } else if (value === 'Inactive' && status === 'Inactive') {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+</script>
+
 {% endblock %}

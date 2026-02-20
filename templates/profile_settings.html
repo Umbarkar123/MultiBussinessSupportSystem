@@ -1,0 +1,539 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="settings-container">
+    <div class="settings-header">
+        <h1>Account Settings</h1>
+        <p>Manage your security, preferences, and account metadata.</p>
+    </div>
+
+    {% if success %}
+    <div class="alert alert-success">
+        <i class="fa fa-check-circle"></i> {{ success }}
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="alert alert-error">
+        <i class="fa fa-exclamation-circle"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    <div class="settings-grid">
+
+        <!-- SECTION A: CHANGE PASSWORD -->
+        <div class="settings-card" id="security-section">
+            <div class="card-header">
+                <i class="fa fa-lock"></i>
+                <h2>Change Password</h2>
+            </div>
+            <form method="POST">
+                <input type="hidden" name="action" value="change_password">
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" name="current_password" required placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" name="new_password" required placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" name="confirm_password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary-gradient">Update Password</button>
+            </form>
+        </div>
+
+        <!-- SECTION B: NOTIFICATION SETTINGS (UI Only) -->
+        <div class="settings-card">
+            <div class="card-header">
+                <i class="fa fa-bell"></i>
+                <h2>Notification Settings</h2>
+            </div>
+            <div class="toggle-list">
+                <div class="toggle-item">
+                    <span>Email Notifications</span>
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="toggle-item">
+                    <span>SMS Notifications</span>
+                    <label class="switch">
+                        <input type="checkbox">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <div class="toggle-item">
+                    <span>Call Alerts</span>
+                    <label class="switch">
+                        <input type="checkbox" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION C: ACCOUNT PREFERENCES -->
+        <div class="settings-card">
+            <div class="card-header">
+                <i class="fa fa-globe"></i>
+                <h2>Account Preferences</h2>
+            </div>
+            <form method="POST">
+                <input type="hidden" name="action" value="update_preferences">
+                <div class="form-group">
+                    <label>Language</label>
+                    <select name="language">
+                        <option value="en" {{ 'selected' if user.language=='en' }}>English (US)</option>
+                        <option value="es" {{ 'selected' if user.language=='es' }}>Spanish</option>
+                        <option value="fr" {{ 'selected' if user.language=='fr' }}>French</option>
+                        <option value="hi" {{ 'selected' if user.language=='hi' }}>Hindi</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Timezone</label>
+                    <select name="timezone">
+                        <option value="UTC" {{ 'selected' if user.timezone=='UTC' }}>UTC</option>
+                        <option value="IST" {{ 'selected' if user.timezone=='IST' }}>Asia/Kolkata (IST)</option>
+                        <option value="EST" {{ 'selected' if user.timezone=='EST' }}>America/New_York (EST)</option>
+                        <option value="PST" {{ 'selected' if user.timezone=='PST' }}>America/Los_Angeles (PST)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Date Format</label>
+                    <select name="date_format">
+                        <option value="DD/MM/YYYY" {{ 'selected' if user.date_format=='DD/MM/YYYY' }}>DD/MM/YYYY
+                        </option>
+                        <option value="MM/DD/YYYY" {{ 'selected' if user.date_format=='MM/DD/YYYY' }}>MM/DD/YYYY
+                        </option>
+                        <option value="YYYY-MM-DD" {{ 'selected' if user.date_format=='YYYY-MM-DD' }}>YYYY-MM-DD
+                        </option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-outline">Save Preferences</button>
+            </form>
+        </div>
+
+        <!-- SECTION D: SECURITY OPTIONS -->
+        <div class="settings-card">
+            <div class="card-header">
+                <i class="fa fa-shield-alt"></i>
+                <h2>Security & Sessions</h2>
+            </div>
+            <div class="meta-list">
+                <div class="meta-item">
+                    <span class="meta-label">Last Login</span>
+                    <span class="meta-value">{{ user.last_login.strftime('%d %b %Y, %I:%M %p') if user.last_login else
+                        'Never' }}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">Active Sessions</span>
+                    <span class="meta-value">1 (This Device)</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button class="btn-secondary" onclick="alert('Logged out from all other devices')">Logout from all
+                    devices</button>
+            </div>
+        </div>
+
+        <!-- SECTION E: API ACCESS -->
+        <div class="settings-card full-width">
+            <div class="card-header">
+                <i class="fa fa-key"></i>
+                <h2>API Access</h2>
+            </div>
+            <div class="api-box">
+                <div class="api-key">
+                    <span id="apiKeyText">{{ api_key }}</span>
+                    <button class="copy-btn" onclick="copyApiKey()"><i class="fa fa-copy"></i></button>
+                </div>
+                <div class="api-actions">
+                    <button class="btn-outline"
+                        onclick="alert('API Key regeneration requested. Contact Admin.')">Regenerate Key</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION F: DANGER ZONE -->
+        <div class="settings-card danger-zone full-width">
+            <div class="card-header">
+                <i class="fa fa-exclamation-triangle"></i>
+                <h2>Danger Zone</h2>
+            </div>
+            <p>Once you delete your account, there is no going back. Please be certain.</p>
+            <div class="danger-actions">
+                <button class="btn-danger-outline" onclick="confirmAction('deactivate')">Deactivate Account</button>
+                <form method="POST" style="display:inline;" id="deleteForm">
+                    <input type="hidden" name="action" value="delete_account">
+                    <button type="button" class="btn-danger" onclick="confirmAction('delete')">Delete Account</button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    :root {
+        --stg-bg: #0f172a;
+        --stg-card: #1e293b;
+        --stg-border: #334155;
+        --stg-text: #f8fafc;
+        --stg-muted: #94a3b8;
+        --stg-accent: #3b82f6;
+        --stg-gradient: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+        --stg-danger: #ef4444;
+    }
+
+    .settings-container {
+        padding: 40px;
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    .settings-header {
+        margin-bottom: 32px;
+    }
+
+    .settings-header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: var(--stg-text);
+    }
+
+    .settings-header p {
+        color: var(--stg-muted);
+        font-size: 15px;
+    }
+
+    /* ALERTS */
+    .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .alert-success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .alert-error {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    /* GRID */
+    .settings-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 24px;
+    }
+
+    .settings-card {
+        background: var(--stg-card);
+        border: 1px solid var(--stg-border);
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .settings-card.full-width {
+        grid-column: span 2;
+    }
+
+    .card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+        color: var(--stg-accent);
+    }
+
+    .card-header h2 {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--stg-text);
+        margin: 0;
+    }
+
+    /* FORMS */
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--stg-muted);
+        margin-bottom: 6px;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        background: var(--stg-bg);
+        border: 1px solid var(--stg-border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        color: var(--stg-text);
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none;
+        border-color: var(--stg-accent);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    /* BUTTONS */
+    .btn-primary-gradient {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: none;
+        background: var(--stg-gradient);
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+
+    .btn-outline {
+        padding: 10px 20px;
+        border-radius: 8px;
+        border: 1px solid var(--stg-border);
+        background: transparent;
+        color: var(--stg-text);
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .btn-outline:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+
+    .btn-secondary {
+        font-size: 13px;
+        color: var(--stg-muted);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        text-decoration: underline;
+    }
+
+    /* TOGGLES */
+    .toggle-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .toggle-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        color: var(--stg-text);
+    }
+
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 22px;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #334155;
+        transition: .4s;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+    }
+
+    input:checked+.slider {
+        background-color: #3b82f6;
+    }
+
+    input:checked+.slider:before {
+        transform: translateX(22px);
+    }
+
+    .slider.round {
+        border-radius: 34px;
+    }
+
+    .slider.round:before {
+        border-radius: 50%;
+    }
+
+    /* META LIST */
+    .meta-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .meta-item {
+        display: flex;
+        justify-content: space-between;
+        font-size: 14px;
+    }
+
+    .meta-label {
+        color: var(--stg-muted);
+    }
+
+    .meta-value {
+        color: var(--stg-text);
+        font-weight: 500;
+    }
+
+    /* API BOX */
+    .api-box {
+        background: var(--stg-bg);
+        border-radius: 8px;
+        padding: 16px;
+        border: 1px solid var(--stg-border);
+    }
+
+    .api-key {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .api-key span {
+        font-family: monospace;
+        color: var(--stg-accent);
+        font-size: 13px;
+        word-break: break-all;
+    }
+
+    .copy-btn {
+        background: transparent;
+        border: none;
+        color: var(--stg-muted);
+        cursor: pointer;
+        padding: 5px;
+    }
+
+    .copy-btn:hover {
+        color: white;
+    }
+
+    /* DANGER ZONE */
+    .danger-zone {
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .danger-zone h2 {
+        color: var(--stg-danger);
+    }
+
+    .danger-zone p {
+        font-size: 13px;
+        color: var(--stg-muted);
+        margin-bottom: 20px;
+    }
+
+    .danger-actions {
+        display: flex;
+        gap: 16px;
+    }
+
+    .btn-danger {
+        background: var(--stg-danger);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-danger-outline {
+        background: transparent;
+        border: 1px solid var(--stg-danger);
+        color: var(--stg-danger);
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    /* MOBILE */
+    @media (max-width: 768px) {
+        .settings-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .settings-card.full-width {
+            grid-column: auto;
+        }
+
+        .settings-container {
+            padding: 20px;
+        }
+    }
+</style>
+
+<script>
+    function copyApiKey() {
+        const key = document.getElementById('apiKeyText').innerText;
+        navigator.clipboard.writeText(key).then(() => {
+            alert('API Key copied to clipboard!');
+        });
+    }
+
+    function confirmAction(type) {
+        if (type === 'delete') {
+            if (confirm('Are you absolutely sure you want to delete your account? This action is IRREVERSIBLE.')) {
+                document.getElementById('deleteForm').submit();
+            }
+        } else {
+            alert('Account deactivation requested. Please contact support.');
+        }
+    }
+</script>
+
+{% endblock %}

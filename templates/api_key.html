@@ -1,197 +1,415 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<div class="page-header">
-    <h1>API Key Management</h1>
-    <p class="subtitle">Generate and manage API keys for client integrations</p>
-</div>
+<div class="api-management-wrap" style="padding: 24px; background: #020617; min-height: 100vh;">
 
-<div class="card full">
-
-    <!-- ===== Generate API Key Form ===== -->
-   <form method="POST" class="api-form">
-    <div class="form-row">
-        <label>Select Client</label>
-
-        <select name="client_id" required>
-    {% for c in clients %}
-       <option value="{{ c._id }}">
-
-            {{ c.company_name }} ({{ c.email }})
-        </option>
-    {% endfor %}
-</select>
-
-
-        <button type="submit" class="save-btn">
-            Generate API Key
-        </button>
+    <div class="page-header" style="margin-bottom: 32px;">
+        <h1 style="font-size: 24px; font-weight: 700; color: #f8fafc; margin: 0;">API Key Management</h1>
+        <p style="font-size: 14px; color: #64748b; margin: 4px 0 0 0;">Generate and manage secure API keys for your
+            client integrations</p>
     </div>
-</form>
 
+    <!-- ===== PART 1: GENERATE API KEY SECTION ===== -->
+    <div class="card"
+        style="padding: 24px; background: #0f172a; border: 1px solid #1e293b; border-radius: 16px; margin-bottom: 32px;">
+        <h3 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 0 0 8px 0;">Generate API Key</h3>
+        <p style="font-size: 13px; color: #64748b; margin: 0 0 24px 0;">Choose whether this API key should work across
+            all applications or only one specific application.</p>
 
-    <!-- ===== API Keys Table ===== -->
-    <table class="calls-table">
-        <thead>
-            <tr>
-                <th>Client</th>
-                <th>API Key</th>
-                <th>Created At</th>
-            </tr>
-        </thead>
+        <form method="POST" onsubmit="return confirmGeneration()" class="api-gen-form">
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; align-items: flex-end;">
 
-        <tbody>
-        {% if keys %}
-            {% for k in keys %}
-            <tr>
-               <td>
-    <strong>{{ k.client_name }}</strong><br>
-    <span style="color:#9ca3af; font-size:12px;">
-        {{ k.client_email }}
-    </span>
-</td>
+                <!-- Client Selection -->
+                <div class="form-group">
+                    <label
+                        style="display: block; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">Select
+                        Client</label>
+                    <select name="client_id" id="clientSelect" required onchange="updateAppDropdown()"
+                        style="width: 100%; background: #1e293b; border: 1px solid #334155; color: #f8fafc; padding: 10px 14px; border-radius: 10px; font-size: 14px; outline: none;">
+                        <option value="" disabled selected>Choose a client...</option>
+                        {% for c in clients %}
+                        <option value="{{ c._id }}">{{ c.company_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
+                <!-- Mode Selection -->
+                <div class="form-group">
+                    <label
+                        style="display: block; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">Generation
+                        Mode</label>
+                    <div
+                        style="display: flex; gap: 16px; background: #1e293b; padding: 4px; border-radius: 10px; border: 1px solid #334155;">
+                        <label class="radio-tab">
+                            <input type="radio" name="scope" value="ALL_APPS" checked onchange="toggleAppSelect(false)">
+                            <span>All Applications</span>
+                        </label>
+                        <label class="radio-tab">
+                            <input type="radio" name="scope" value="SINGLE_APP" onchange="toggleAppSelect(true)">
+                            <span>Single Application</span>
+                        </label>
+                    </div>
+                </div>
 
-             <td class="key-cell">
-    <code id="key{{ loop.index }}">{{ k.api_key }}</code>
+                <!-- App Selection (Conditional) -->
+                <div class="form-group" id="appSelectGroup" style="display: none;">
+                    <label
+                        style="display: block; font-size: 12px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">Select
+                        Application</label>
+                    <select name="app_name" id="appSelect"
+                        style="width: 100%; background: #1e293b; border: 1px solid #334155; color: #f8fafc; padding: 10px 14px; border-radius: 10px; font-size: 14px; outline: none;">
+                        <option value="" disabled selected>Select application...</option>
+                    </select>
+                </div>
 
-    <button onclick="copyKey('key{{ loop.index }}')" class="copy-btn">
-        Copy
-    </button>
+                <div class="form-group">
+                    <button type="submit" class="btn-generate">
+                        <i class="fa fa-plus-circle"></i> Generate API Key
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
 
-    <a href="/regenerate-key/{{ k._id }}" class="regen-btn">
-        Regenerate
-    </a>
+    <!-- ===== PART 3: TABLE & FILTERS ===== -->
+    <div class="table-controls"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3 style="font-size: 16px; font-weight: 700; color: #f8fafc; margin: 0;">Active API Keys</h3>
 
-    <a href="/revoke-key/{{ k._id }}" class="revoke-btn">
-        Revoke
-    </a>
-</td>
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <span style="font-size: 12px; font-weight: 600; color: #64748b;">Filter by Scope:</span>
+            <select id="scopeFilter" onchange="filterKeys()"
+                style="background: #0f172a; border: 1px solid #1e293b; color: #f8fafc; padding: 8px 16px; border-radius: 8px; font-size: 13px;">
+                <option value="ALL">All Keys</option>
+                <option value="ALL_APPS">All Apps Keys</option>
+                <option value="SINGLE_APP">Single App Keys</option>
+                <option value="LEGACY">Legacy Keys</option>
+            </select>
+        </div>
+    </div>
 
-
-
-                <td>
-    {% if k.createdAt %}
-        {{ k.createdAt.strftime("%Y-%m-%d %H:%M") }}
-    {% else %}
-        -
-    {% endif %}
-</td>
-
-            </tr>
-            {% endfor %}
-        {% else %}
-            <tr>
-                <td colspan="3" style="text-align:center; padding:20px; color:#9ca3af;">
-                    No API keys generated yet.
-                </td>
-            </tr>
-        {% endif %}
-        </tbody>
-    </table>
-
+    <div class="card"
+        style="padding: 0; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden;">
+        <div class="table-responsive">
+            <table class="saas-table" id="keyTable">
+                <thead>
+                    <tr>
+                        <th>Client Name</th>
+                        <th>Application Scope</th>
+                        <th>API Key</th>
+                        <th>Created Date</th>
+                        <th style="text-align: center;">Status</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if keys %}
+                    {% for k in keys %}
+                    <tr class="key-row" data-scope="{{ k.scope }}">
+                        <td>
+                            <strong style="color: #f8fafc;">{{ k.client_name }}</strong><br>
+                            <span style="font-size: 11px; color: #64748b;">{{ k.client_email }}</span>
+                        </td>
+                        <td>
+                            {% if k.scope == 'ALL_APPS' %}
+                            <span class="scope-badge global">ALL APPS</span>
+                            {% elif k.scope == 'SINGLE_APP' %}
+                            <span class="scope-badge single">{{ k.app_name }}</span>
+                            {% else %}
+                            <span class="scope-badge legacy">LEGACY</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="key-wrapper">
+                                <code id="key{{ loop.index }}"
+                                    class="masked-key">{{ k.api_key[:8] }}••••••••••••••••</code>
+                                <span id="fullKey{{ loop.index }}" style="display:none;">{{ k.api_key }}</span>
+                                <button onclick="copyKey('fullKey{{ loop.index }}')" class="icon-btn" title="Copy Key">
+                                    <i class="fa fa-copy"></i>
+                                </button>
+                            </div>
+                        </td>
+                        <td style="color: #64748b; font-size: 12px;">
+                            {{ k.created_at.strftime("%Y-%m-%d %H:%M") if k.created_at else '-' }}
+                        </td>
+                        <td style="text-align: center;">
+                            <span class="status-indicator {{ k.status }}"></span>
+                            <span
+                                style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: #94a3b8;">{{
+                                k.status }}</span>
+                        </td>
+                        <td style="text-align: right;">
+                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                <a href="/regenerate-key/{{ k._id }}" class="action-btn-mini info" title="Regenerate">
+                                    <i class="fa fa-sync-alt"></i>
+                                </a>
+                                <a href="/revoke-key/{{ k._id }}" class="action-btn-mini danger" title="Revoke"
+                                    onclick="return confirm('Revoke this API key?')">
+                                    <i class="fa fa-trash-alt"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="padding: 48px; text-align: center; color: #475569;">
+                            <i class="fa fa-key"
+                                style="font-size: 32px; display: block; margin-bottom: 12px; opacity: 0.3;"></i>
+                            No API keys found.
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
 <style>
-/* ===== API FORM ===== */
-.api-form{
-    margin-bottom:25px;
-}
+    .radio-tab {
+        flex: 1;
+        cursor: pointer;
+        text-align: center;
+    }
 
-.form-row{
-    display:flex;
-    gap:15px;
-    align-items:center;
-    flex-wrap:wrap;
-}
+    .radio-tab input {
+        display: none;
+    }
 
-.form-row label{
-    font-weight:600;
-    min-width:120px;
-}
+    .radio-tab span {
+        display: block;
+        padding: 8px 12px;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
+        transition: all 0.2s;
+    }
 
-.form-row select{
-    padding:10px 12px;
-    border-radius:6px;
-    border:1px solid #334155;
-    background:#0f172a;
-    color:white;
-    min-width:280px;
-}
+    .radio-tab input:checked+span {
+        background: #0f172a;
+        color: #f8fafc;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
 
-.form-row select:focus{
-    border:1px solid #facc15;
-    outline:none;
-}
+    .btn-generate {
+        background: #00e5ff;
+        color: #020617;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        width: 100%;
+        justify-content: center;
+    }
 
-/* ===== API KEY STYLE ===== */
-.key-cell code{
-    background:#0f172a;
-    padding:6px 10px;
-    border-radius:6px;
-    border:1px solid #334155;
-    font-size:13px;
-    color:#facc15;
-}
-.subtitle{
-    color:#9ca3af;
-    margin-top:4px;
-}
-.copy-btn{
-    margin-left:8px;
-    padding:4px 8px;
-    border:none;
-    background:#facc15;
-    color:black;
-    border-radius:4px;
-    cursor:pointer;
-    font-size:12px;
-}
-.form-row{
-    position: relative;
-    z-index: 5;
-}
+    .btn-generate:hover {
+        background: #00b8cc;
+        transform: translateY(-2px);
+    }
 
-.form-row select{
-    position: relative;
-    z-index: 10;
-}
-.card{
-    overflow: visible;
-}
-.regen-btn{
-    margin-left:8px;
-    padding:4px 8px;
-    background:#0ea5e9;
-    color:white;
-    border-radius:4px;
-    text-decoration:none;
-    font-size:12px;
-}
+    .saas-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
 
-.revoke-btn{
-    margin-left:6px;
-    padding:4px 8px;
-    background:#ef4444;
-    color:white;
-    border-radius:4px;
-    text-decoration:none;
-    font-size:12px;
-}
+    .saas-table th {
+        background: rgba(255, 255, 255, 0.02);
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        padding: 14px 20px;
+        text-align: left;
+        border-bottom: 1px solid #1e293b;
+    }
 
+    .key-row {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
 
+    .key-row td {
+        padding: 16px 20px;
+    }
 
+    .scope-badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .scope-badge.global {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .scope-badge.single {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+        border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .scope-badge.legacy {
+        background: rgba(148, 163, 184, 0.1);
+        color: #94a3b8;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .key-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        padding: 6px 10px;
+        border-radius: 8px;
+        border: 1px solid #1e293b;
+    }
+
+    .masked-key {
+        font-family: 'JetBrains Mono', monospace;
+        color: #facc15;
+        font-size: 13px;
+    }
+
+    .status-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 6px;
+    }
+
+    .status-indicator.active {
+        background: #22c55e;
+        box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+    }
+
+    .icon-btn {
+        background: transparent;
+        border: none;
+        color: #64748b;
+        cursor: pointer;
+        font-size: 14px;
+        transition: color 0.2s;
+    }
+
+    .icon-btn:hover {
+        color: #f8fafc;
+    }
+
+    .action-btn-mini {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 12px;
+        transition: all 0.2s;
+    }
+
+    .action-btn-mini.info {
+        color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    .action-btn-mini.info:hover {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .action-btn-mini.danger {
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    .action-btn-mini.danger:hover {
+        background: #ef4444;
+        color: white;
+    }
 </style>
-<script>
-function copyKey(id){
-    const text = document.getElementById(id).innerText;
-    navigator.clipboard.writeText(text);
-    alert("API Key copied!");
-}
-function filterClient(id){
-    window.location.href = "/api-key?client=" + id;
-}
-</script>
 
+<script>
+    // Data passed from backend
+    const clientApps = {{ all_apps| tojson }};
+
+    function toggleAppSelect(show) {
+        const group = document.getElementById('appSelectGroup');
+        group.style.display = show ? 'block' : 'none';
+        if (show) {
+            document.getElementById('appSelect').required = true;
+            updateAppDropdown();
+        } else {
+            document.getElementById('appSelect').required = false;
+        }
+    }
+
+    function updateAppDropdown() {
+        const clientId = document.getElementById('clientSelect').value;
+        const appSelect = document.getElementById('appSelect');
+
+        // Clear existing
+        appSelect.innerHTML = '<option value="" disabled selected>Select application...</option>';
+
+        // Filter apps for this client
+        const apps = clientApps.filter(a => a.client_id === clientId);
+
+        if (apps.length === 0) {
+            const opt = document.createElement('option');
+            opt.textContent = "No applications found";
+            opt.disabled = true;
+            appSelect.appendChild(opt);
+        } else {
+            apps.forEach(app => {
+                const opt = document.createElement('option');
+                opt.value = app.app_name;
+                opt.textContent = app.app_name;
+                appSelect.appendChild(opt);
+            });
+        }
+    }
+
+    function confirmGeneration() {
+        const scope = document.querySelector('input[name="scope"]:checked').value;
+        if (scope === 'ALL_APPS') {
+            return confirm("Are you sure you want to create a key with access to ALL applications for this client?");
+        }
+        return true;
+    }
+
+    function filterKeys() {
+        const scope = document.getElementById('scopeFilter').value;
+        const rows = document.querySelectorAll('.key-row');
+
+        rows.forEach(row => {
+            const rowScope = row.getAttribute('data-scope');
+            if (scope === 'ALL' || rowScope === scope) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function copyKey(fullKeyId) {
+        const key = document.getElementById(fullKeyId).innerText;
+        navigator.clipboard.writeText(key).then(() => {
+            alert("API Key copied to clipboard!");
+        });
+    }
+</script>
 
 {% endblock %}

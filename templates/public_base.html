@@ -1,130 +1,170 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>ConnexHub Form</title>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_name|default('ConnexHub') }} | Call Request</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0f1722;
-            --bg-darker: #0b111a;
-            --primary: #1f8fff;
-            --border-color: #1c3344;
-            --text-bright: #e6edf3;
-            --text-dim: #94a3b8;
-            --radius-md: 12px;
-            --radius-sm: 6px;
+            --nav-bg: rgba(15, 23, 42, 0.8);
+            --border-glow: rgba(0, 229, 255, 0.15);
         }
 
         body {
-            background: var(--bg-dark);
-            color: var(--text-bright);
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            background: radial-gradient(circle at top, #0f172a, #020617);
             margin: 0;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Inter', sans-serif;
+            color: var(--text-bright);
         }
 
-        .public-header {
+        /* TOP SAAS HEADER */
+        .public-nav {
             width: 100%;
-            padding: 24px 0;
-            text-align: center;
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--text-bright);
+            padding: 12px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--nav-bg);
+            backdrop-filter: blur(12px);
             border-bottom: 1px solid var(--border-color);
-            background: var(--bg-darker);
-            margin-bottom: 40px;
-            letter-spacing: -0.5px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-sizing: border-box;
         }
 
-        .public-container {
-            width: 100%;
-            max-width: 600px;
-            padding: 20px;
+        .public-nav::after {
+            content: "";
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            opacity: 0.5;
         }
 
-        .form-card {
-            background: var(--bg-darker);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 40px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        .nav-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
         }
 
-        .form-title {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 24px;
-            color: var(--text-bright);
-            text-align: center;
+        .nav-logo {
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--primary);
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
         }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 14px;
-            margin-bottom: 8px;
-            color: var(--text-dim);
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px 16px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border-color);
-            background: var(--bg-dark);
-            color: var(--text-bright);
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .submit-btn {
-            width: 100%;
-            margin-top: 10px;
-            padding: 14px;
-            border: none;
-            border-radius: var(--radius-sm);
-            background: var(--primary);
-            color: white;
+        .nav-tagline {
+            font-size: 10px;
             font-weight: 600;
-            font-size: 15px;
-            cursor: pointer;
-            transition: all 0.2s ease;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 4px;
         }
 
-        .submit-btn:hover {
-            opacity: 0.9;
-            transform: translateY(-1px);
+        .nav-right {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-dim);
+            opacity: 0.8;
+            position: absolute;
+            right: 40px;
+        }
+
+        /* MAIN WRAPPER */
+        .public-main {
+            width: 100%;
+            max-width: 1200px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 24px;
+            box-sizing: border-box;
+        }
+
+        /* FOOTER */
+        .public-footer {
+            width: 100%;
+            padding: 32px 0;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+            margin-top: auto;
+        }
+
+        .footer-text {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .footer-ai {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 8px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 768px) {
+            .public-nav {
+                padding: 16px 20px;
+            }
+
+            .nav-right {
+                display: none;
+            }
         }
     </style>
-
 </head>
 
 <body>
 
-    <div class="public-header">
-        ⚡ ConnexHub
-    </div>
+    <nav class="public-nav">
+        <div class="nav-brand">
+            <a href="#" class="nav-logo">
+                <i class="fa fa-bolt"></i> ConnexHub
+            </a>
+            <span class="nav-tagline">Smart Booking & Call Automation</span>
+        </div>
+        <div class="nav-right">
+            Powered by ConnexHub
+        </div>
+    </nav>
 
-    <div class="public-container">
+    <main class="public-main">
         {% block content %}{% endblock %}
-    </div>
+    </main>
+
+    <footer class="public-footer">
+        <div class="footer-text">
+            &copy; 2026 ConnexHub • All rights reserved
+        </div>
+        <div class="footer-ai">
+            <i class="fa fa-robot" style="margin-right: 4px;"></i> Powered by AI Call Automation
+        </div>
+    </footer>
 
 </body>
 

@@ -1,47 +1,254 @@
 {% extends "layout.html" %}
 {% block content %}
 
-<h2>Clients</h2>
+<div class="client-mgmt-wrap" style="padding: 20px; background: #020617; min-height: 100vh;">
 
-<div class="card full">
-    <table class="calls-table">
-        <thead>
-            <tr>
-                <th>Company</th>
-                <th>Email</th>
-                <th>View Calls</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for c in clients %}
-            <tr>
-                <td>{{ c.company_name }}</td>
-                <td>{{ c.email }}</td>
-                <td>
-                    <a href="/admin/calls?client={{ c._id }}" class="regen-btn"> 👁 View Calls </a>
+    <!-- HEADER SECTION -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px;">
+        <div>
+            <h1 style="font-size: 22px; font-weight: 700; color: #f8fafc; margin: 0;">All Clients</h1>
+            <p style="font-size: 13px; color: #64748b; margin: 4px 0 0 0;">Manage individual client call logs and
+                analytics</p>
+        </div>
+        <div style="color: #64748b; font-size: 12px; font-weight: 500;">
+            <i class="fa fa-calendar-alt"></i> Updated: <span style="color: #94a3b8;">{{ stats.updated_time or 'Just
+                now' }}</span>
+        </div>
+    </div>
 
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <!-- KPI ROW -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
+        <div class="kpi-mini">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div class="kpi-label">Total Clients</div>
+                    <div class="kpi-val">{{ stats.total_clients }}</div>
+                </div>
+                <div class="kpi-icon"><i class="fa fa-users"></i></div>
+            </div>
+        </div>
+        <div class="kpi-mini">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div class="kpi-label">Total Calls</div>
+                    <div class="kpi-val" style="color: #00e5ff;">{{ stats.total_calls }}</div>
+                </div>
+                <div class="kpi-icon" style="background: rgba(0, 229, 255, 0.1); color: #00e5ff;"><i
+                        class="fa fa-phone-alt"></i></div>
+            </div>
+        </div>
+        <div class="kpi-mini">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <div class="kpi-label">Active Clients</div>
+                    <div class="kpi-val" style="color: #22c55e;">{{ stats.active_clients }}</div>
+                </div>
+                <div class="kpi-icon" style="background: rgba(34, 197, 94, 0.1); color: #22c55e;"><i
+                        class="fa fa-chart-line"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEARCH BAR -->
+    <div style="margin-bottom: 16px; position: relative;">
+        <i class="fa fa-search"
+            style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #64748b; font-size: 13px;"></i>
+        <input type="text" id="clientSearch" placeholder="Search client by company or email..."
+            style="width: 100%; height: 40px; background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding-left: 38px; color: #f8fafc; font-size: 13px; outline: none; transition: border-color 0.2s;">
+    </div>
+
+    <!-- TABLE CARD -->
+    <div class="card"
+        style="padding: 0; background: #0f172a; border: 1px solid #1e293b; border-radius: 12px; overflow: hidden;">
+        <div class="table-responsive">
+            <table class="saas-table" id="clientsTable">
+                <thead>
+                    <tr>
+                        <th style="padding: 12px 16px;">Company</th>
+                        <th style="padding: 12px 16px;">Email</th>
+                        <th style="text-align: center; padding: 12px 16px;">Applications</th>
+                        <th style="text-align: center; padding: 12px 16px;">Total Calls</th>
+                        <th style="text-align: right; padding: 12px 16px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in clients %}
+                    <tr class="client-row">
+                        <td style="padding: 10px 16px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div class="status-dot {{ 'active' if c.status == 'Active' else 'inactive' }}"></div>
+                                <strong style="color: #f8fafc; font-size: 14px;">{{ c.company_name }}</strong>
+                            </div>
+                        </td>
+                        <td style="padding: 10px 16px; font-size: 13px; color: #94a3b8;">{{ c.email }}</td>
+                        <td style="text-align: center; padding: 10px 16px;">
+                            <span class="count-pill">{{ c.app_count }}</span>
+                        </td>
+                        <td style="text-align: center; padding: 10px 16px;">
+                            <span class="count-pill" style="background: rgba(0, 229, 255, 0.1); color: #00e5ff;">{{
+                                c.total_calls }}</span>
+                        </td>
+                        <td style="text-align: right; padding: 10px 16px;">
+                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                <a href="/admin/calls?client={{ c._id }}" class="btn-micro primary"
+                                    style="background: rgba(0, 229, 255, 0.1); color: #00e5ff;">
+                                    <i class="fa fa-eye"></i> View Calls
+                                </a>
+                                <a href="/admin/calls?client={{ c._id }}" class="btn-micro">
+                                    <i class="fa fa-th-large"></i> Applications
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- PAGINATION FOOTER -->
+        <div
+            style="padding: 14px 20px; background: rgba(0,0,0,0.1); border-top: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 12px; color: #64748b;">
+                Showing <span style="color: #f8fafc; font-weight: 600;">1</span> to <span
+                    style="color: #f8fafc; font-weight: 600;">{{ clients|length }}</span> of <span
+                    style="color: #f8fafc; font-weight: 600;">{{ stats.total_clients }}</span> clients
+            </div>
+            <div style="display: flex; gap: 6px;">
+                <button class="btn-micro" disabled>Prev</button>
+                <button class="btn-micro" disabled>Next</button>
+            </div>
+        </div>
+    </div>
 </div>
+
 <style>
-.regen-btn{
-    background:#facc15;
-    color:#000;
-    padding:6px 16px;
-    border-radius:20px;
-    text-decoration:none;
-    font-size:12px;
-    font-weight:600;
-    display:inline-block;
-}
+    .kpi-mini {
+        background: #0f172a;
+        border: 1px solid #1e293b;
+        padding: 16px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
 
-.regen-btn:hover{
-    background:#eab308;
-}
+    .kpi-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 4px;
+    }
 
+    .kpi-val {
+        font-size: 24px;
+        font-weight: 700;
+        color: #f8fafc;
+    }
 
+    .kpi-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+    }
+
+    .saas-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .saas-table th {
+        background: rgba(255, 255, 255, 0.02);
+        color: #64748b;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        text-align: left;
+        border-bottom: 1px solid #1e293b;
+    }
+
+    .client-row {
+        transition: background 0.2s;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .client-row:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .count-pill {
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .btn-micro {
+        background: rgba(255, 255, 255, 0.05);
+        color: #94a3b8;
+        border: 1px solid #1e293b;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .btn-micro:hover:not(:disabled) {
+        border-color: #334155;
+        background: rgba(255, 255, 255, 0.08);
+        color: #f8fafc;
+    }
+
+    .btn-micro.primary {
+        background: rgba(0, 229, 255, 0.1);
+        color: #00e5ff;
+        border-color: rgba(0, 229, 255, 0.2);
+    }
+
+    .btn-micro.primary:hover {
+        background: rgba(0, 229, 255, 0.2);
+        border-color: #00e5ff;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+
+    .status-dot.active {
+        background: #22c55e;
+        box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+    }
+
+    .status-dot.inactive {
+        background: #64748b;
+    }
 </style>
+
+<script>
+    document.getElementById('clientSearch').addEventListener('input', function (e) {
+        const term = e.target.value.toLowerCase();
+        const rows = document.querySelectorAll('#clientsTable tbody tr');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(term) ? '' : 'none';
+        });
+    });
+</script>
+
 {% endblock %}
