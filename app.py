@@ -288,34 +288,48 @@ def call_status_webhook():
         
     return Response(status=200)
 
+# Background job to check and trigger scheduled calls.
 def check_scheduled_calls():
-    """Background job to check and trigger scheduled calls."""
-    with app.app_context():
-        # IST FIX: Use IST now for comparison
-        now = datetime.now(IST).replace(tzinfo=None)
-        # Find APPROVED requests where call_time is now or in the past AND not initiated
-        pending_calls = db.call_requests.find({
-            "status": "APPROVED",
-            "call_time": {"$lte": now},
-            "call_initiated": {"$ne": True}
-        })
+    """Background job logic to check and trigger scheduled calls."""
+    if not db:
+        logger.warning("DB not initialized - cannot check scheduled calls.")
+        return
+    
+    # IST FIX: Use IST now for comparison
+    now_ist = datetime.now(IST).replace(tzinfo=None)
+    
+    # Find APPROVED requests where call_time is now or in the past AND not initiated
+    pending_calls = list(db.call_requests.find({
+        "status": "APPROVED",
+        "call_time": {"$lte": now_ist},
+        "call_initiated": {"$ne": True}
+    }))
+    
+    for call in pending_calls:
+        call_id = str(call["_id"])
+        phone = call.get("phone")
+        app_name = call.get("app_name", "your request")
         
-        for call in pending_calls:
-            call_id = str(call["_id"])
-            phone = call.get("phone")
-            app_name = call.get("app_name", "your request")
-            
-            logger.info(f"⏰ Triggering scheduled call for {call_id} (scheduled for {call.get('call_time')})")
-            
-            # No need to update status to CALLING - trigger_voice_call handles 'call_initiated'
-            success = trigger_voice_call(call_id, phone, app_name)
-            if not success:
-                 db.call_requests.update_one({"_id": call["_id"]}, {"$set": {"call_error": "Failed to trigger scheduled call"}})
+        logger.info(f"⏰ Triggering scheduled call for {call_id} (scheduled for {call.get('call_time')})")
+        trigger_voice_call(call_id, phone, app_name)
 
-# Start Scheduler
-scheduler = BackgroundScheduler()
-scheduler.add_job(func=check_scheduled_calls, trigger="interval", minutes=1)
-scheduler.start()
+@app.route("/api/cron/check-calls")
+def cron_check_calls():
+    """
+    Expose the check logic as a URL. 
+    This is useful for Vercel/serverless where BackgroundScheduler stops between requests.
+    """
+    check_scheduled_calls()
+    return jsonify({
+        "status": "processed", 
+        "time": datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
+    })
+
+# Start Scheduler (Only active for local/persistent servers)
+if os.getenv("FLASK_ENV") != "production":
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=check_scheduled_calls, trigger="interval", minutes=1)
+    scheduler.start()
 
 @app.route('/')
 def home():
