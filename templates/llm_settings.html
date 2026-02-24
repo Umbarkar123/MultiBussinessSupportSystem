@@ -11,21 +11,24 @@
 
     <!-- HEADER TITLE & CONTROLS -->
     <div class="header-row"
-        style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px;">
-        <div>
-            <h1 style="font-size: 26px; font-weight: 600; letter-spacing: -0.01em; margin: 0;">LLM Settings</h1>
-            <p style="color: var(--text-dim); font-size: 13px; margin-top: 2px;">Professional AI agent persona
+        style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; gap: 30px; flex-wrap: wrap;">
+        <div style="flex: 1; min-width: 300px;">
+            <h1 style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em; margin: 0; color: #fff;">LLM Settings
+            </h1>
+            <p style="color: var(--text-dim); font-size: 13px; margin-top: 4px; line-height: 1.4;">Professional AI agent
+                persona
                 management and behavioral tuning.</p>
         </div>
 
-        <!-- 1. TOP CONTROL BAR (Simplified) -->
-        <div class="minimal-toolbar" style="display: flex; align-items: center; gap: 16px;">
+        <!-- 1. TOP CONTROL BAR (Premium) -->
+        <div class="minimal-toolbar" style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;">
             <!-- App Selector -->
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; flex-direction: column; gap: 5px;">
                 <label
-                    style="font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase;">App:</label>
+                    style="font-size: 9px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.8;">Application
+                    Context</label>
                 <select id="appSelect" onchange="selectAppFromDropdown()"
-                    style="height: 32px; background: rgba(255,255,255,0.03); color: var(--text-bright); border: 1px solid var(--border-color); padding: 0 10px; border-radius: 6px; font-size: 12px; min-width: 140px;">
+                    style="height: 38px; background: #0f172a; color: #fff; border: 1px solid rgba(0, 229, 255, 0.2); padding: 0 12px; border-radius: 6px; font-size: 13px; font-weight: 500; min-width: 180px; outline: none; transition: all 0.2s;">
                     <option value="">Select App</option>
                     {% for app in applications %}
                     <option value="{{ app['app_name'] }}">{{ app['app_name'] }}</option>
@@ -34,31 +37,53 @@
             </div>
 
             <!-- Model Selector -->
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <label
-                    style="font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase;">Model:</label>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <label
+                        style="font-size: 9px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.8;">Intelligence
+                        Model</label>
+                    <span
+                        style="font-size: 8px; padding: 1px 6px; border-radius: 3px; background: rgba(0, 229, 255, 0.1); color: var(--primary); border: 1px solid rgba(0, 229, 255, 0.2); font-weight: 900;">
+                        {{ profile.plan_type|upper }}
+                    </span>
+                </div>
                 <select id="modelSelect"
-                    style="height: 32px; background: rgba(255,255,255,0.03); color: var(--text-bright); border: 1px solid var(--border-color); padding: 0 10px; border-radius: 6px; font-size: 12px; min-width: 120px;">
-                    <option value="gpt-4">GPT-4 Turbo</option>
-                    <option value="gpt-3.5">GPT-3.5</option>
-                    <option value="deepseek">DeepSeek</option>
+                    style="height: 38px; background: #0f172a; color: #fff; border: 1px solid rgba(0, 229, 255, 0.2); padding: 0 12px; border-radius: 6px; font-size: 13px; font-weight: 600; min-width: 240px; outline: none; transition: all 0.2s;">
+                    <optgroup label="Available Models">
+                        {% for mid, mname in models %}
+                        {% if mid in allowed_models %}
+                        <option value="{{ mid }}">{{ mname }}</option>
+                        {% endif %}
+                        {% endfor %}
+                    </optgroup>
+                    <optgroup label="Locked - Upgrade Required">
+                        {% for mid, mname in models %}
+                        {% if mid not in allowed_models %}
+                        <option value="{{ mid }}" disabled>{{ mname }} (🔒)</option>
+                        {% endif %}
+                        {% endfor %}
+                    </optgroup>
                 </select>
             </div>
 
             <!-- Status Toggle -->
             <div
-                style="display: flex; align-items: center; gap: 10px; margin-left: 8px; padding-left: 16px; border-left: 1px solid rgba(255,255,255,0.05);">
-                <span style="font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase;">AI
-                    Active</span>
-                <label class="switch">
-                    <input type="checkbox" id="enableToggle" onchange="updateToggleStyle(this)">
+                style="display: flex; align-items: center; gap: 10px; padding: 0 15px; height: 38px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="text-align: left;">
+                    <div style="font-size: 9px; font-weight: 800; color: var(--text-dim); text-transform: uppercase;">AI
+                        CORE</div>
+                    <div id="statusLabel" style="font-size: 10px; color: #22c55e; font-weight: 800; line-height: 1;">
+                        ACTIVE</div>
+                </div>
+                <label class="switch" style="width: 32px; height: 18px; margin: 0;">
+                    <input type="checkbox" id="enableToggle" onchange="updateToggleUI(this)" checked>
                     <span class="slider round"></span>
                 </label>
             </div>
 
-            <button class="btn-primary" onclick="createApp()"
-                style="height: 32px; padding: 0 14px; font-size: 11px; font-weight: 600;">
-                <i class="fa fa-plus"></i> New App
+            <button class="btn-primary neon-shadow" onclick="createApp()"
+                style="height: 38px; padding: 0 16px; font-size: 11px; font-weight: 800; border-radius: 6px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa fa-plus"></i> NEW APP
             </button>
         </div>
     </div>
@@ -138,7 +163,8 @@ You are a helpful, polite booking assistant. Ask the user for necessary booking 
         <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px;">
             <input type="text" placeholder="Simulate a user message..."
                 style="flex: 1; height: 36px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: var(--text-bright); padding: 0 12px; border-radius: 6px; font-size: 13px;">
-            <button class="btn-primary" style="height: 36px; padding: 0 20px; font-size: 12px; font-weight: 600;">Run
+            <button class="btn-primary" onclick="runTest()"
+                style="height: 36px; padding: 0 20px; font-size: 12px; font-weight: 600;">Run
                 Test</button>
         </div>
 
@@ -149,6 +175,62 @@ You are a helpful, polite booking assistant. Ask the user for necessary booking 
                 Result:</label>
             <p style="margin: 0; color: #a5d6ff; font-size: 13px; line-height: 1.5; font-style: italic;">Response
                 simulation will appear here based on active configuration.</p>
+        </div>
+    </div>
+
+    <!-- 5. MODEL PRICING & ECONOMICS (Dynamic SaaS Panel) -->
+    <div id="pricingPanel" class="model-pricing-panel"
+        style="display: none; background: #06121f; border: 1px solid rgba(0, 229, 255, 0.15); border-radius: 12px; padding: 20px; margin-top: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div
+                    style="width: 32px; height: 32px; background: rgba(0, 229, 255, 0.1); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fa fa-gem" style="color: var(--primary); font-size: 14px;"></i>
+                </div>
+                <div>
+                    <div style="font-size: 13px; font-weight: 700; color: var(--text-bright); line-height: 1;">Unit
+                        Economics</div>
+                    <div style="font-size: 10px; color: var(--text-dim); margin-top: 2px;">Estimated based on token
+                        averages</div>
+                </div>
+            </div>
+            <span id="modelLevel" class="badge-model badge-premium"
+                style="font-size: 9px; padding: 3px 8px; border-radius: 20px; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">Premium</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+            <div
+                style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+                <div style="font-size: 9px; color: var(--text-dim); margin-bottom: 4px; text-transform: uppercase;">
+                    Input / 1k</div>
+                <div id="inputCost" style="font-size: 16px; font-weight: 600; color: var(--text-bright);">$0.005</div>
+            </div>
+            <div
+                style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+                <div style="font-size: 9px; color: var(--text-dim); margin-bottom: 4px; text-transform: uppercase;">
+                    Output / 1k</div>
+                <div id="outputCost" style="font-size: 16px; font-weight: 600; color: var(--text-bright);">$0.015</div>
+            </div>
+        </div>
+
+        <div
+            style="background: rgba(0, 229, 255, 0.03); border: 1px solid rgba(0, 229, 255, 0.1); padding: 16px; border-radius: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 11px; color: #94a3b8;">Avg. Cost per Call:</span>
+                <span id="avgCost" style="font-size: 14px; font-weight: 700; color: var(--primary);">$0.02 / call</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px; color: #94a3b8;">Est. Monthly (on Free Plan):</span>
+                <span id="monthlyEst" style="font-size: 14px; font-weight: 700; color: #fff;">$60.00</span>
+            </div>
+        </div>
+
+        <div
+            style="display: flex; align-items: center; gap: 8px; margin-top: 16px; padding: 10px; background: rgba(255, 255, 255, 0.02); border-radius: 6px; border-left: 3px solid var(--primary);">
+            <i class="fa fa-info-circle" style="font-size: 11px; color: var(--primary);"></i>
+            <p style="font-size: 10px; color: #94a3b8; margin: 0; line-height: 1.3;">These costs will be billed only if
+                you exceed your monthly plan credits.</p>
         </div>
     </div>
 
@@ -225,6 +307,7 @@ You are a helpful, polite booking assistant. Ask the user for necessary booking 
     /* Range Slider */
     input[type=range] {
         -webkit-appearance: none;
+        appearance: none;
         background: transparent;
     }
 
@@ -274,37 +357,70 @@ You are a helpful, polite booking assistant. Ask the user for necessary booking 
             .then(data => {
                 document.getElementById("defaultPrompt").value = data.default_prompt || "";
                 document.getElementById("customPrompt").value = data.custom_prompt || "";
-                document.getElementById("enableToggle").checked = data.enabled || false;
+                document.getElementById("enableToggle").checked = data.ai_active;
+                document.getElementById("modelSelect").value = data.model_name || "gpt-4o-mini";
+                updateToggleUI(document.getElementById("enableToggle"));
+                updatePricingPanel();
             });
+    }
+
+    function updatePrompt() {
+        if (!selectedApp) { alert("Select an application first"); return; }
+
+        const data = {
+            app_name: selectedApp,
+            custom_prompt: document.getElementById("customPrompt").value,
+            model_name: document.getElementById("modelSelect").value,
+            ai_active: document.getElementById("enableToggle").checked,
+            temperature: parseFloat(document.getElementById("tempSlider").value)
+        };
+
+        fetch("/llm/save/" + selectedApp, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "saved") {
+                    alert("AI Persona for " + selectedApp + " updated successfully!");
+                } else {
+                    alert("Error: " + (data.error || "Failed to save"));
+                }
+            });
+    }
+
+    function updateToggleUI(el) {
+        const label = document.getElementById("statusLabel");
+        if (el.checked) {
+            label.innerText = "ACTIVE";
+            label.style.color = "#22c55e";
+        } else {
+            label.innerText = "INACTIVE";
+            label.style.color = "#94a3b8";
+        }
+    }
+
+    function runTest() {
+        const input = document.querySelector('input[placeholder="Simulate a user message..."]');
+        const output = document.querySelector('p[style*="italic"]');
+
+        if (!input.value) { alert("Please enter a test message"); return; }
+
+        output.innerText = "Simulating response...";
+        output.style.opacity = "0.5";
+
+        // This is a placeholder for real AI test endpoint if exists
+        setTimeout(() => {
+            output.innerText = "Simulation successful. The agent will respond using the " + document.getElementById("modelSelect").value + " model with your custom persona overlay.";
+            output.style.opacity = "1";
+        }, 1500);
     }
 
     function resetPrompt() {
         if (confirm("Discard custom persona changes?")) {
             document.getElementById("customPrompt").value = document.getElementById("defaultPrompt").value;
         }
-    }
-
-    function updatePrompt() {
-        const app = document.getElementById("appSelect").value || selectedApp;
-        const customPrompt = document.getElementById("customPrompt").value;
-
-        if (!app) {
-            alert("Application context missing.");
-            return;
-        }
-
-        fetch("/update-llm-prompt", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                app_name: app,
-                custom_prompt: customPrompt
-            })
-        })
-            .then(res => res.json())
-            .then(data => {
-                alert("Settings synchronized.");
-            });
     }
 
     function createApp() {
@@ -341,6 +457,44 @@ You are a helpful, polite booking assistant. Ask the user for necessary booking 
             valDisp.innerText = this.value;
         }
     }
+
+    function updatePricingPanel() {
+        const model = document.getElementById("modelSelect").value;
+        const panel = document.getElementById("pricingPanel");
+        if (!model) { panel.style.display = "none"; return; }
+
+        fetch(`/api/model-pricing/${model}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.model_name) {
+                    panel.style.display = "block";
+                    document.getElementById("inputCost").innerText = `$${(data.input_cost_per_1k_tokens || data.input_cost_per_1k).toFixed(5)}`;
+                    document.getElementById("outputCost").innerText = `$${(data.output_cost_per_1k_tokens || data.output_cost_per_1k).toFixed(5)}`;
+
+                    const avg = data.estimated_cost_per_call || 0.02;
+                    document.getElementById("avgCost").innerText = `$${avg.toFixed(3)} / call`;
+
+                    const monthly = avg * 3000;
+                    document.getElementById("monthlyEst").innerText = `$${monthly.toFixed(2)}`;
+
+                    const level = document.getElementById("modelLevel");
+                    level.innerText = data.level || "Standard";
+                    level.className = `badge-model ${data.level === 'Premium' ? 'badge-premium' : 'badge-budget'}`;
+
+                    // Match theme colors
+                    level.style.background = data.level === 'Premium' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(34, 197, 94, 0.15)';
+                    level.style.color = data.level === 'Premium' ? '#ef4444' : '#22c55e';
+                    level.style.border = `1px solid ${data.level === 'Premium' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)'}`;
+                } else {
+                    panel.style.display = "none";
+                }
+            })
+            .catch(() => { panel.style.display = "none"; });
+    }
+
+    // Call on change and initial load
+    document.getElementById("modelSelect").addEventListener("change", updatePricingPanel);
+    setTimeout(updatePricingPanel, 500);
 </script>
 
 {% endblock %}

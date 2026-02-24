@@ -1,0 +1,165 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div class="apd-header" style="text-align: center; display: block; margin-bottom: 40px;">
+    <h1 class="page-title"
+        style="font-size: 28px; background: linear-gradient(90deg, #fff, #94a3b8); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">
+        Choose your intelligence tier</h1>
+    <p class="page-desc" style="max-width: 500px; margin: 0 auto; color: #94a3b8; font-size: 13px;">ConnexHub powers
+        your agents with the
+        world's most advanced LLMs. Select a plan to unlock higher capacity and premium models.</p>
+</div>
+
+<div class="pricing-grid"
+    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; max-width: 1000px; margin: 0 auto; align-items: stretch;">
+
+    <!-- FREE PLAN -->
+    <div class="pricing-card"
+        style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 30px; border-radius: 16px; text-align: center; display: flex; flex-direction: column;">
+        <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">
+            Starter</div>
+        <div class="pricing-name" style="font-size: 20px; font-weight: 800; margin-bottom: 12px;">FREE PLAN</div>
+        <div class="pricing-amount" style="font-size: 36px; font-weight: 800; margin-bottom: 20px;">$0<span
+                style="font-size: 14px; color: #94a3b8;">/month</span></div>
+
+        <ul
+            style="list-style: none; padding: 0; margin-bottom: 25px; text-align: left; font-size: 13px; color: #cbd5e1; flex-grow: 1;">
+            <li style="margin-bottom: 10px;"><i class="fa fa-check-circle"
+                    style="color: #22c55e; margin-right: 8px;"></i> 100 calls / day</li>
+            <li style="margin-bottom: 10px;"><i class="fa fa-check-circle"
+                    style="color: #22c55e; margin-right: 8px;"></i> 3,000 calls / month</li>
+            <li style="margin-bottom: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div
+                    style="font-size: 9px; font-weight: 700; color: #00e5ff; text-transform: uppercase; margin-bottom: 6px;">
+                    Included Models</div>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <span
+                        style="background: rgba(0,229,255,0.1); color: #00e5ff; padding: 1px 6px; border-radius: 4px; font-size: 10px;">GPT-3.5
+                        Turbo</span>
+                </div>
+            </li>
+        </ul>
+
+        {% if profile.plan_type == 'free' %}
+        <button class="btn btn-secondary" disabled
+            style="width: 100%; height: 40px; font-weight: 700; font-size: 12px;">ACTIVE PLAN</button>
+        {% else %}
+        <a href="/api/create-checkout-session/free" class="btn btn-primary neon-shadow"
+            style="width: 100%; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">GET
+            STARTED</a>
+        {% endif %}
+    </div>
+
+    <!-- PRO PLAN -->
+    <div class="pricing-card featured"
+        style="background: #0f172a; border: 2px solid var(--primary); padding: 30px; border-radius: 16px; text-align: center; position: relative; box-shadow: 0 10px 30px rgba(0, 229, 255, 0.15); display: flex; flex-direction: column; transform: scale(1.03);">
+        <div
+            style="position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--primary); color: #000; font-size: 9px; font-weight: 900; padding: 3px 12px; border-radius: 20px;">
+            RECOMMENDED</div>
+        <div
+            style="font-size: 10px; font-weight: 800; color: var(--primary); text-transform: uppercase; margin-bottom: 8px;">
+            Small Business</div>
+        <div class="pricing-name" style="font-size: 20px; font-weight: 800; margin-bottom: 12px;">PRO PLAN</div>
+        <div class="pricing-amount" style="font-size: 36px; font-weight: 800; margin-bottom: 20px;">$49<span
+                style="font-size: 14px; color: #94a3b8;">/month</span></div>
+
+        <ul
+            style="list-style: none; padding: 0; margin-bottom: 25px; text-align: left; font-size: 13px; color: #cbd5e1; flex-grow: 1;">
+            <li style="margin-bottom: 10px;"><i class="fa fa-check-circle"
+                    style="color: var(--primary); margin-right: 8px;"></i> 500 calls / day</li>
+            <li style="margin-bottom: 10px;"><i class="fa fa-check-circle"
+                    style="color: var(--primary); margin-right: 8px;"></i> 15,000 calls / month</li>
+            <li style="margin-bottom: 10px;"><i class="fa fa-check-circle"
+                    style="color: var(--primary); margin-right: 8px;"></i> Priority Execution</li>
+            <li style="margin-bottom: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div
+                    style="font-size: 9px; font-weight: 700; color: var(--primary); text-transform: uppercase; margin-bottom: 6px;">
+                    Premium Models</div>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <span
+                        style="background: rgba(0,229,255,0.1); color: #00e5ff; padding: 1px 6px; border-radius: 4px; font-size: 10px;">GPT-4o</span>
+                    <span
+                        style="background: rgba(0,229,255,0.1); color: #00e5ff; padding: 1px 6px; border-radius: 4px; font-size: 10px;">GPT-4</span>
+                    <span
+                        style="background: rgba(255,255,255,0.05); color: #94a3b8; padding: 1px 6px; border-radius: 4px; font-size: 10px;">+
+                        GPT-3.5</span>
+                </div>
+            </li>
+        </ul>
+
+        {% if profile.plan_type == 'pro' %}
+        <button class="btn btn-primary" disabled
+            style="width: 100%; height: 40px; font-weight: 700; font-size: 12px; background: rgba(0,229,255,0.2); border-color: transparent;">ACTIVE
+            PLAN</button>
+        {% else %}
+        <a href="/api/create-checkout-session/pro" class="btn btn-primary neon-shadow"
+            style="width: 100%; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px;">UPGRADE
+            TO PRO</a>
+        {% endif %}
+    </div>
+
+    <!-- ENTERPRISE PLAN -->
+    <div class="pricing-card"
+        style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 30px; border-radius: 16px; text-align: center; display: flex; flex-direction: column;">
+        <div style="font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px;">
+            Powerhouse</div>
+        <div class="pricing-name" style="font-size: 20px; font-weight: 800; margin-bottom: 12px;">ENTERPRISE</div>
+        <div class="pricing-amount" style="font-size: 36px; font-weight: 800; margin-bottom: 20px;">$199<span
+                style="font-size: 14px; color: #94a3b8;">/month</span></div>
+
+        <ul
+            style="list-style: none; padding: 0; margin-bottom: 25px; text-align: left; font-size: 13px; color: #cbd5e1; flex-grow: 1;">
+            <li style="margin-bottom: 10px;"><i class="fa fa-check-circle"
+                    style="color: #a855f7; margin-right: 8px;"></i> Unlimited Calls</li>
+            <li style="margin-bottom: 10px;"><i class="fa fa-check-circle"
+                    style="color: #a855f7; margin-right: 8px;"></i> Dedicated Voice Core</li>
+            <li style="margin-bottom: 10px;"><i class="fa fa-check-circle"
+                    style="color: #a855f7; margin-right: 8px;"></i> 24/7 Account Manager</li>
+            <li style="margin-bottom: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div
+                    style="font-size: 9px; font-weight: 700; color: #a855f7; text-transform: uppercase; margin-bottom: 6px;">
+                    Advanced Models</div>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                    <span
+                        style="background: rgba(168,85,247,0.1); color: #a855f7; padding: 1px 6px; border-radius: 4px; font-size: 10px;">GPT-4
+                        Turbo</span>
+                    <span
+                        style="background: rgba(255,255,255,0.05); color: #94a3b8; padding: 1px 6px; border-radius: 4px; font-size: 10px;">+
+                        All Others</span>
+                </div>
+            </li>
+        </ul>
+
+        {% if profile.plan_type == 'enterprise' %}
+        <button class="btn btn-secondary" disabled
+            style="width: 100%; height: 40px; font-weight: 700; font-size: 12px;">ACTIVE PLAN</button>
+        {% else %}
+        <a href="/api/create-checkout-session/enterprise" class="btn btn-primary neon-shadow"
+            style="width: 100%; height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; background: #a855f7; border-color: #a855f7; box-shadow: 0 4px 15px rgba(168, 85, 247, 0.25);">CHOOSE
+            ENTERPRISE</a>
+        {% endif %}
+    </div>
+</div>
+</div>
+
+<div class="usage-card"
+    style="margin-top: 60px; text-align: center; background: rgba(255,255,255,0.01); border: 1px solid rgba(255,255,255,0.05); padding: 30px;">
+    <div class="usage-title" style="font-size: 14px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em;">
+        Standard in all plans</div>
+    <div style="display: flex; justify-content: center; gap: 40px; margin-top: 24px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px; color: #cbd5e1; font-size: 13px;">
+            <i class="fa fa-bolt" style="color: var(--primary);"></i> Low-Latency Voice
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; color: #cbd5e1; font-size: 13px;">
+            <i class="fa fa-shield-alt" style="color: var(--primary);"></i> SOC2 Compliance
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; color: #cbd5e1; font-size: 13px;">
+            <i class="fa fa-robot" style="color: var(--primary);"></i> Automated Call Logic
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; color: #cbd5e1; font-size: 13px;">
+            <i class="fa fa-chart-line" style="color: var(--primary);"></i> Real-time Analytics
+        </div>
+    </div>
+</div>
+
+{% endblock %}

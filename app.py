@@ -11,12 +11,24 @@ from twilio.rest import Client
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 from openai import OpenAI
+import stripe
 from dotenv import load_dotenv
 from bson import ObjectId
 from functools import wraps
 from uuid import uuid4
 from apscheduler.schedulers.background import BackgroundScheduler
 import pytz
+from bson.errors import InvalidId
+
+def safely_get_id(id_val):
+    """Safely converts to ObjectId if valid, else returns original value (for custom string IDs)."""
+    if not id_val:
+        return None
+    try:
+        return ObjectId(str(id_val))
+    except (InvalidId, TypeError, ValueError):
+        return str(id_val)
+
 
 
 # 1. SETUP & CONFIG
@@ -58,6 +70,9 @@ def client_required(f):
 
 # 2. LOAD ENVIRONMENT VARIABLES
 MONGO_URI = os.getenv("MONGO_URI")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+stripe.api_key = STRIPE_SECRET_KEY
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
@@ -99,7 +114,13 @@ else:
 # 4. AI & EXTERNAL SERVICES
 client_ai = OpenAI(api_key=OPENAI_API_KEY)
 
-def call_llm(prompt_text, form_data):
+def call_llm(prompt_text, form_data, model_name="gpt-4o-mini"):
+    # SAAS SAFETY: Ensure model is supported, otherwise fallback
+    SUPPORTED_MODELS = ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo", "deepseek-chat"]
+    if model_name not in SUPPORTED_MODELS:
+        logger.warning(f"Unsupported model requested: {model_name}. Falling back to gpt-4o-mini.")
+        model_name = "gpt-4o-mini"
+
     user_input = f"""
     Form Data Received:
     {form_data}
@@ -110,17 +131,23 @@ def call_llm(prompt_text, form_data):
 
     try:
         response = client_ai.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model_name,
             messages=[
                 {"role": "system", "content": "You are an intelligent form processing assistant."},
                 {"role": "user", "content": user_input}
             ],
             temperature=0.3
         )
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        
+        # Extract token usage
+        tokens_in = response.usage.prompt_tokens if hasattr(response, "usage") else 500
+        tokens_out = response.usage.completion_tokens if hasattr(response, "usage") else 100
+        
+        return content, tokens_in, tokens_out
     except Exception as e:
-        logger.error(f"Error calling LLM: {e}")
-        return "Error processing request."
+        logger.error(f"Error calling LLM ({model_name}): {e}")
+        return "Error processing request.", 0, 0
 
 # ------------------ DB ------------------
 if db is not None:
@@ -146,6 +173,280 @@ DEFAULT_FORM_FIELDS = [
     {"label": "Preferred Date", "name": "date", "type": "date", "required": False},
     {"label": "Service Details", "name": "query", "type": "textarea", "required": False}
 ]
+
+# ------------------ SAAS CONSTANTS ------------------
+LLM_PRICING_DEFAULTS = [
+    {
+        "model_name": "gpt-4-turbo",
+        "provider": "openai",
+        "input_cost_per_1k_tokens": 0.01,
+        "output_cost_per_1k_tokens": 0.03,
+        "avg_tokens_per_call": 1000,
+        "level": "Premium",
+        "latency": "Premium",
+        "last_updated_at": datetime.now(IST).replace(tzinfo=None)
+    },
+    {
+        "model_name": "gpt-4o",
+        "provider": "openai",
+        "input_cost_per_1k_tokens": 0.005,
+        "output_cost_per_1k_tokens": 0.015,
+        "avg_tokens_per_call": 1000,
+        "level": "Premium",
+        "latency": "Standard",
+        "last_updated_at": datetime.now(IST).replace(tzinfo=None)
+    },
+    {
+        "model_name": "gpt-4o-mini",
+        "provider": "openai",
+        "input_cost_per_1k_tokens": 0.00015,
+        "output_cost_per_1k_tokens": 0.0006,
+        "avg_tokens_per_call": 800,
+        "level": "Budget",
+        "latency": "Fast",
+        "last_updated_at": datetime.now(IST).replace(tzinfo=None)
+    },
+    {
+        "model_name": "gpt-3.5-turbo",
+        "provider": "openai",
+        "input_cost_per_1k_tokens": 0.0005,
+        "output_cost_per_1k_tokens": 0.0015,
+        "avg_tokens_per_call": 500,
+        "level": "Budget",
+        "latency": "Fast",
+        "last_updated_at": datetime.now(IST).replace(tzinfo=None)
+    },
+    {
+        "model_name": "gpt-4",
+        "provider": "openai",
+        "input_cost_per_1k_tokens": 0.03,
+        "output_cost_per_1k_tokens": 0.06,
+        "avg_tokens_per_call": 1000,
+        "level": "Premium",
+        "latency": "Standard",
+        "last_updated_at": datetime.now(IST).replace(tzinfo=None)
+    },
+    {
+        "model_name": "claude-3-sonnet",
+        "provider": "anthropic",
+        "input_cost_per_1k_tokens": 0.003,
+        "output_cost_per_1k_tokens": 0.015,
+        "avg_tokens_per_call": 1000,
+        "level": "Premium",
+        "latency": "Standard",
+        "last_updated_at": datetime.now(IST).replace(tzinfo=None)
+    },
+    {
+        "model_name": "claude-3-haiku",
+        "provider": "anthropic",
+        "input_cost_per_1k_tokens": 0.00025,
+        "output_cost_per_1k_tokens": 0.00125,
+        "avg_tokens_per_call": 800,
+        "level": "Budget",
+        "latency": "Fast",
+        "last_updated_at": datetime.now(IST).replace(tzinfo=None)
+    },
+    {
+        "model_name": "deepseek-chat",
+        "provider": "deepseek",
+        "input_cost_per_1k_tokens": 0.0001,
+        "output_cost_per_1k_tokens": 0.0002,
+        "avg_tokens_per_call": 1000,
+        "level": "Efficient",
+        "latency": "Standard",
+        "last_updated_at": datetime.now(IST).replace(tzinfo=None)
+    }
+]
+
+# Standardized list for UI categorization
+MODELS_LIST = [
+    ("gpt-4o-mini", "GPT-4O MINI (Recommended)"),
+    ("gpt-4o", "GPT-4O (High Intelligence)"),
+    ("gpt-4-turbo", "GPT-4 TURBO"),
+    ("gpt-4", "GPT-4 (Legacy)"),
+    ("gpt-3.5-turbo", "GPT-3.5 TURBO"),
+    ("claude-3-sonnet", "CLAUDE 3 SONNET"),
+    ("claude-3-haiku", "CLAUDE 3 HAIKU"),
+    ("deepseek-chat", "DEEPSEEK V3")
+]
+
+SUBSCRIPTION_PLANS = [
+    {
+        "plan_id": "free",
+        "name": "FREE PLAN",
+        "price_monthly": 0,
+        "daily_limit": 100,
+        "monthly_limit": 3000,
+        "allowed_models": ["gpt-3.5-turbo"],
+        "features": [
+            "100 calls/day",
+            "3,000 calls/month",
+            "Models: GPT-3.5 only",
+            "Perfect for beginners"
+        ]
+    },
+    {
+        "plan_id": "pro",
+        "name": "PRO PLAN",
+        "price_monthly": 49,
+        "daily_limit": 500,
+        "monthly_limit": 15000,
+        "allowed_models": ["gpt-4o", "gpt-4"],
+        "features": [
+            "500 calls/day",
+            "15,000 calls/month",
+            "Unlock GPT-4o & GPT-4",
+            "Ideal for growing businesses"
+        ]
+    },
+    {
+        "plan_id": "enterprise",
+        "name": "ENTERPRISE",
+        "price_monthly": 199,
+        "daily_limit": 999999,
+        "monthly_limit": 999999,
+        "allowed_models": ["gpt-4-turbo"],
+        "features": [
+            "Unlimited calls",
+            "Models: GPT-4 Turbo",
+            "SLA Support",
+            "Full suite for enterprises"
+        ]
+    }
+]
+
+def get_allowed_models(plan_type):
+    """Retrieve models allowed for a specific plan tier."""
+    for plan in SUBSCRIPTION_PLANS:
+        if plan["plan_id"] == plan_type:
+            return plan["allowed_models"]
+    return ["gpt-3.5-turbo"]  # Fallback
+
+# ------------------ SAAS HELPERS ------------------
+def get_model_pricing(model_name):
+    """Fetch latest pricing for a model from DB."""
+    pricing = db.llm_pricing.find_one({"model_name": model_name})
+    if not pricing:
+        # Fallback to defaults
+        for default in LLM_PRICING_DEFAULTS:
+            if default["model_name"] == model_name:
+                return default
+    return pricing
+
+def sync_usage_resets(client_id):
+    """Resets daily/monthly counters if the date/month has changed (Self-healing cron)."""
+    client = db.clients.find_one({"_id": safely_get_id(client_id)})
+    if not client: return
+    
+    usage = client.get("usage", {})
+    now = datetime.now(IST).replace(tzinfo=None)
+    
+    # Track resets in metadata
+    reset_meta = client.get("usage_resets", {
+        "last_daily_reset": now,
+        "last_monthly_reset": now
+    })
+    
+    last_daily = reset_meta.get("last_daily_reset", now)
+    last_monthly = reset_meta.get("last_monthly_reset", now)
+    
+    updates = {}
+    
+    # Daily Reset Logic
+    if last_daily.date() < now.date():
+        updates["usage.daily_calls"] = 0
+        updates["usage_resets.last_daily_reset"] = now
+        
+    # Monthly Reset Logic
+    if last_monthly.month < now.month or last_monthly.year < now.year:
+        updates["usage.monthly_calls"] = 0
+        updates["usage.total_cost_mtd"] = 0
+        updates["usage_resets.last_monthly_reset"] = now
+        
+    if updates:
+        db.clients.update_one(
+            {"_id": safely_get_id(client_id)},
+            {"$set": updates}
+        )
+
+def check_usage_limits(client_id):
+    """
+    Checks if a client has exceeded their daily/monthly limits or has an inactive subscription.
+    Returns (is_blocked, message)
+    """
+    # Self-heal resets before checking
+    sync_usage_resets(client_id)
+    
+    client = db.clients.find_one({"_id": safely_get_id(client_id)})
+    if not client:
+        return True, "Client account not found. Please log in again."
+        
+    subscription_status = client.get("subscription_status", "active") # Defaulting to active for free users
+    if subscription_status not in ["active", "trialing"]:
+        return True, "Your subscription is inactive. Please visit the Billing page to reactivate."
+
+    plan_id = client.get("plan_type", "free")
+    plan = next((p for p in SUBSCRIPTION_PLANS if p["plan_id"] == plan_id), SUBSCRIPTION_PLANS[0])
+
+    usage = client.get("usage", {"daily_calls": 0, "monthly_calls": 0})
+    
+    # Check Daily Limit
+    daily_used = usage.get("daily_calls", 0)
+    daily_limit = plan.get("daily_limit", 100)
+    if daily_used >= daily_limit:
+        return True, f"Daily limit of {daily_limit} calls reached. Upgrade your plan to continue."
+
+    # Check Monthly Limit
+    monthly_used = usage.get("monthly_calls", 0)
+    monthly_limit = plan.get("monthly_limit", 3000)
+    if monthly_used >= monthly_limit:
+        return True, f"Monthly limit of {monthly_limit} calls reached. Upgrade your plan to continue."
+        
+    return False, ""
+
+def log_call_usage(client_id, app_name, model_name, tokens_in, tokens_out):
+    """Calculates cost and updates usage counters (Production SaaS)."""
+    client = db.clients.find_one({"_id": safely_get_id(client_id)})
+    if not client: return 0
+
+    pricing = get_model_pricing(model_name)
+    if not pricing:
+        pricing = {"input_cost_per_1k_tokens": 0.001, "output_cost_per_1k_tokens": 0.002}
+        
+    cost = (tokens_in / 1000 * pricing.get("input_cost_per_1k_tokens", 0)) + \
+           (tokens_out / 1000 * pricing.get("output_cost_per_1k_tokens", 0))
+    
+    now = datetime.now(IST).replace(tzinfo=None)
+    
+    # Update Client Usage Stats (Real-Time)
+    db.clients.update_one(
+        {"_id": safely_get_id(client_id)},
+        {
+            "$inc": {
+                "usage.daily_calls": 1,
+                "usage.monthly_calls": 1,
+                "usage.total_tokens": tokens_in + tokens_out,
+                "usage.total_cost_mtd": round(cost, 6)
+            },
+            "$set": {
+                "usage.last_call_at": now
+            }
+        }
+    )
+
+    # Granular Log Entry
+    db.call_logs.insert_one({
+        "client_id": str(client_id),
+        "app_name": app_name,
+        "model_used": model_name,
+        "tokens_input": tokens_in,
+        "tokens_output": tokens_out,
+        "total_tokens": tokens_in + tokens_out,
+        "cost": round(cost, 6),
+        "timestamp": now
+    })
+
+    return cost
 
 # ------------------ MIGRATION ------------------
 @app.route("/admin/migrate-forms")
@@ -196,6 +497,61 @@ def migrate_forms():
             
     return f"Migration complete. Synchronized {len(legacy_apps)} legacy apps. Created {created_count} missing forms."
 
+# ------------------ SAAS INITIALIZATION ------------------
+@app.route("/admin/init-saas")
+@admin_required
+def init_saas():
+    # 1. Seed Pricing
+    for pricing in LLM_PRICING_DEFAULTS:
+        # Calculate estimated cost per call for the UI
+        pricing["estimated_cost_per_call"] = round(
+            (pricing["avg_tokens_per_call"] / 1000 * pricing["input_cost_per_1k_tokens"]) + 
+            (200 / 1000 * pricing["output_cost_per_1k_tokens"]), # Assuming 200 output tokens avg
+            4
+        )
+        db.llm_pricing.update_one(
+            {"model_name": pricing["model_name"]},
+            {"$set": pricing},
+            upsert=True
+        )
+    
+    # 2. Seed Plans
+    for plan in SUBSCRIPTION_PLANS:
+        db.subscription_plans.update_one(
+            {"plan_id": plan["plan_id"]},
+            {"$set": plan},
+            upsert=True
+        )
+        
+    # 3. Update existing clients with default plan if missing
+    db.clients.update_many(
+        {"plan_type": {"$exists": False}},
+        {"$set": {
+            "plan_type": "free",
+            "usage": {
+                "daily_calls": 0,
+                "monthly_calls": 0,
+                "last_usage_reset": datetime.now(IST).replace(tzinfo=None)
+            },
+            "trial": {
+                "trial_start": datetime.now(IST).replace(tzinfo=None),
+                "trial_end": (datetime.now(IST) + timedelta(days=7)).replace(tzinfo=None),
+                "is_trial_active": False
+            }
+        }}
+    )
+    
+    # 4. Initialize model_name in client_apps if missing
+    db.client_apps.update_many(
+        {"model_name": {"$exists": False}},
+        {"$set": {
+            "model_name": "gpt-4o-mini",
+            "ai_active": True
+        }}
+    )
+    
+    return "SaaS Initialization Complete. Pricing seeded, clients updated, and app models initialized."
+
 
 
 # ------------------ TWILIO CONFIG ------------------
@@ -223,6 +579,20 @@ def trigger_voice_call(booking_id, phone, app_name):
         
         # Note: 'url' is for TwiML execution (Retell)
         # 'status_callback' is for status updates to OUR server
+        
+        # SAAS CHECK: Find client_id for this booking
+        try:
+            target_id = ObjectId(booking_id)
+            booking = db.call_requests.find_one({"_id": target_id})
+        except:
+            booking = db.call_requests.find_one({"_id": booking_id})
+            
+        if booking and booking.get("client_id"):
+            cid = booking.get("client_id")
+            blocked, msg = check_usage_limits(cid)
+            if blocked:
+                logger.warning(f"🚫 Call blocked for client {cid}: {msg}")
+                return False
         
         call = twilio_client.calls.create(
             to=target_phone,
@@ -366,11 +736,8 @@ def handle_exception(e):
 @app.route("/debug-env")
 def debug_env():
     return jsonify({
-        "cwd": os.getcwd(),
-        "files": os.listdir("."),
-        "templates": os.listdir("templates") if os.path.exists("templates") else "missing",
+        "session": dict(session),
         "mongo_uri_set": bool(os.getenv("MONGO_URI")),
-        "openai_key_set": bool(os.getenv("OPENAI_API_KEY"))
     })
 
 @app.route("/request-call", methods=["POST"])
@@ -461,51 +828,90 @@ def ask():
 # ------------------ CONTEXT PROCESSOR ------------------
 @app.context_processor
 def inject_user_profile():
-    """Injects user profile data into all templates."""
+    """Consolidated profile injector with deep safety fallbacks."""
     if "user" not in session:
         return {"profile": None}
 
     user_email = session.get("user")
     role = session.get("role")
     
-    profile = {}
+    # Initialize basic profile
+    profile = {
+        "name": "User",
+        "email": user_email,
+        "role": role or "User",
+        "business_name": "My Business",
+        "plan": {"name": "N/A", "plan_id": "none", "daily_limit": 100, "monthly_limit": 3000, "features": []},
+        "usage": {"daily_calls": 0, "monthly_calls": 0},
+        "trial": {"trial_end": None}
+    }
+
+    try:
+        # Load detailed data based on role
+        if role == "CLIENT":
+            client = db.clients.find_one({"email": user_email})
+            if client:
+                profile.update({
+                    "name": client.get("name", "Client"),
+                    "phone": client.get("phone", ""),
+                    "business_name": client.get("business_name", "My Business"),
+                    "gst": client.get("gst", "N/A"),
+                    "role": "Client"
+                })
+                
+                # SaaS Plan Merging
+                plan_id = client.get("plan_type", "free")
+                plan_doc = db.subscription_plans.find_one({"plan_id": plan_id}) or {}
+                profile["plan"] = {
+                    "name": plan_doc.get("name", "Free Plan"),
+                    "plan_id": plan_doc.get("plan_id", plan_id),
+                    "daily_limit": plan_doc.get("daily_limit", 100),
+                    "monthly_limit": plan_doc.get("monthly_limit", 3000),
+                    "features": plan_doc.get("features", [])
+                }
+                
+                # Usage Merging
+                usage_data = client.get("usage") or {}
+                profile["usage"] = {
+                    "daily_calls": usage_data.get("daily_calls", 0),
+                    "monthly_calls": usage_data.get("monthly_calls", 0)
+                }
+                
+                # Trial Merging
+                trial_data = client.get("trial") or {}
+                profile["trial"] = {"trial_end": trial_data.get("trial_end", None)}
+
+        elif role == "ADMIN":
+            admin = db.admin.find_one({"email": user_email})
+            if admin:
+                profile.update({
+                    "name": admin.get("name", "Admin"),
+                    "role": "Super Admin",
+                    "business_name": "ConnexHub System"
+                })
+
+        else:
+            user = db.user.find_one({"email": user_email})
+            if user:
+                profile.update({
+                    "name": user.get("name", "User"),
+                    "phone": user.get("phone", ""),
+                    "role": "User"
+                })
+
+    except Exception as e:
+        logger.error(f"Error in inject_user_profile: {e}")
+
+    # FINAL SAFETY CHECK: Ensure absolutely all keys are present for templates
+    if not profile.get("plan"): profile["plan"] = {}
+    if "daily_limit" not in profile["plan"]: profile["plan"]["daily_limit"] = 100
+    if "monthly_limit" not in profile["plan"]: profile["plan"]["monthly_limit"] = 3000
+    if "name" not in profile["plan"]: profile["plan"]["name"] = "N/A"
     
-    if role == "CLIENT":
-        client = db.clients.find_one({"email": user_email})
-        if client:
-            profile = {
-                "name": client.get("name", "Client"),
-                "email": client.get("email"),
-                "phone": client.get("phone", ""),
-                "business_name": client.get("business_name", "My Business"),
-                "gst": client.get("gst", "N/A"),
-                "role": "Client"
-            }
-    elif role == "ADMIN":
-        admin = db.admin.find_one({"email": user_email})
-        if admin:
-            profile = {
-                "name": admin.get("name", "Admin"),
-                "email": admin.get("email"),
-                "role": "Super Admin",
-                "business_name": "ConnexHub System",
-                "gst": "N/A"
-            }
-    else:
-        # Regular User
-        user = db.user.find_one({"email": user_email})
-        if user:
-            profile = {
-                "name": user.get("name", "User"),
-                "email": user.get("email"),
-                "phone": user.get("phone", ""),
-                "role": "User"
-            }
-
-    # Ensure defaults if empty
-    if not profile:
-        profile = {"name": "Unknown", "email": user_email, "role": role}
-
+    if not profile.get("usage"): profile["usage"] = {}
+    if "daily_calls" not in profile["usage"]: profile["usage"]["daily_calls"] = 0
+    if "monthly_calls" not in profile["usage"]: profile["usage"]["monthly_calls"] = 0
+    
     return {"profile": profile}
 
 
@@ -1038,24 +1444,7 @@ def api_calls():
     }), 200
 
 
-@app.context_processor
-def inject_profile():
-    role = session.get("role")
-    email = session.get("user")
-
-    if role == "USER":
-        profile = user_col.find_one({"email": email})
-
-    elif role == "CLIENT":
-        profile = db["clients"].find_one({"email": email})
-
-    elif role == "ADMIN":
-        profile = admin_col.find_one({"email": email})
-
-    else:
-        profile = None
-
-    return dict(profile=profile)
+# Consolidated into inject_user_profile above
 #
 @app.route("/super-dashboard")
 @admin_required
@@ -1159,7 +1548,7 @@ def super_dashboard():
         client_doc = None
         if client_id_val and len(str(client_id_val)) == 24:
             try:
-                client_doc = db["clients"].find_one({"_id": ObjectId(client_id_val)})
+                client_doc = db["clients"].find_one({"_id": safely_get_id(client_id_val)})
             except:
                 pass
         
@@ -1411,7 +1800,7 @@ def booking_data():
     # Debug: If still empty, try matching as ObjectId just in case legacy data exists
     if not all_data:
         try:
-            oid_query = {"client_id": ObjectId(client_id)}
+            oid_query = {"client_id": safely_get_id(client_id)}
             all_data = list(db.call_requests.find(oid_query).sort("created_at", -1))
         except:
             pass
@@ -1540,7 +1929,7 @@ def admin_calls():
             from bson import ObjectId
             # Try finding by ObjectId first
             if len(str(client_id)) == 24:
-                client = db["clients"].find_one({"_id": ObjectId(client_id)})
+                client = db["clients"].find_one({"_id": safely_get_id(client_id)})
         except:
             pass
         
@@ -1996,7 +2385,7 @@ def legacy_public_form_v2(client_id, app_name):
     # Try ObjectId conversion for client_id if not found
     if not app_data and len(c_id_input) == 24:
         try:
-             query["client_id"] = ObjectId(c_id_input)
+             query["client_id"] = safely_get_id(c_id_input)
              app_data = db.client_apps.find_one(query)
         except: pass
 
@@ -2323,7 +2712,7 @@ def notify_client_sms(client_id, app_name, user_name, user_phone):
         client = db.clients.find_one({"_id": str(client_id)})
     if not client and len(str(client_id)) == 24:
         try:
-            client = db.clients.find_one({"_id": ObjectId(client_id)})
+            client = db.clients.find_one({"_id": safely_get_id(client_id)})
         except:
             pass
 
@@ -2561,41 +2950,50 @@ def api_submit(api_key):
     
     logger.info(f"🎯 Final extracted - Name: '{display_name}', Phone: '{display_phone}'")
 
-    # 2. Get specific application prompt
-    app_doc = db.applications.find_one({"app_name": app_name})
-    if app_doc and app_doc.get("prompt"):
-        final_prompt = app_doc.get("prompt")
-    else:
-        # Fallback to general LLM settings
-        settings = db.llm_settings.find_one({
-            "client_id": client_id,
-            "app_name": app_name
-        })
-        if settings:
-            default_p = settings.get("default_prompt", "")
-            custom_p = settings.get("custom_prompt", "")
-            final_prompt = default_p + "\n" + custom_p
-        else:
-            final_prompt = "You are a helpful assistant."
-
-    # ==========================================
-    # 🔥 STEP 2: CALL AI MODEL (OPTIONAL - SKIP IF NO API KEY)
-    # ==========================================
-    ai_reply = "Form received successfully"
+    # 2. Get SaaS-scoped application config (Model, Active Status, Prompt)
+    app_config = db.client_apps.find_one({"client_id": client_id, "app_name": app_name}) or {}
     
-    if OPENAI_API_KEY:
+    # Extract settings with defaults
+    used_model = app_config.get("model_name", "gpt-4o-mini")
+    ai_active = app_config.get("ai_active", True)
+    
+    # Prompt logic: Use app-specific prompt if available, else fallback
+    final_prompt = app_config.get("prompt")
+    if not final_prompt:
+        settings = db.llm_settings.find_one({"client_id": client_id, "app_name": app_name})
+        if settings:
+            final_prompt = (settings.get("default_prompt", "") + "\n" + settings.get("custom_prompt", "")).strip()
+    
+    if not final_prompt:
+        final_prompt = "You are a helpful AI assistant."
+
+    # 🔥 STEP 2: CALL AI MODEL
+    # ==========================================
+    # SAAS GATING: Verify active subscription and usage limits
+    is_blocked, limit_msg = check_usage_limits(client_id)
+    
+    if is_blocked:
+        logger.warning(f"🚫 BLOCKED: {client_id} - {limit_msg}")
+        # Store as pending but mark as blocked in data if needed, 
+        # for now we'll just skip the AI part.
+        ai_active = False 
+
+    if OPENAI_API_KEY and not is_blocked and ai_active:
         try:
-            response = client_ai.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": final_prompt},
-                    {"role": "user", "content": str(data)}
-                ]
-            )
-            ai_reply = response.choices[0].message.content
+            # Use the refactored call_llm
+            ai_reply, tokens_in, tokens_out = call_llm(final_prompt, data, model_name=used_model)
+            
+            # Log Usage
+            log_call_usage(client_id, app_name, used_model, tokens_in, tokens_out)
+            
         except Exception as e:
             logger.warning(f"AI processing skipped or failed: {e}")
-            ai_reply = "Form received successfully (AI processing unavailable)"
+            ai_reply = "Form received successfully (AI processing error)"
+    elif blocked:
+        logger.warning(f"🚫 AI skipped for {client_id}: {msg}")
+        ai_reply = f"Form received successfully (AI limit reached: {msg})"
+    elif not ai_active:
+        logger.info(f"⚪ AI deactivated for app: {app_name}")
 
     # ==========================================
     # 🔥 STEP 3: SAVE ALL DATA TO call_requests COLLECTION
@@ -2842,6 +3240,7 @@ def open_form(app_name):
 
 @app.route("/llm/get/<app_name>")
 @app.route("/get-llm-prompt/<app_name>")
+@client_required
 def get_llm_prompt(app_name):
     client_id = session.get("client_id")
 
@@ -2850,15 +3249,16 @@ def get_llm_prompt(app_name):
         "app_name": app_name
     })
 
-    if settings:
-        return jsonify({
-            "custom_prompt": settings.get("custom_prompt", ""),
-            "default_prompt": settings.get("default_prompt", "")
-        })
+    app_config = db.client_apps.find_one({
+        "client_id": client_id,
+        "app_name": app_name
+    })
 
     return jsonify({
-        "custom_prompt": "",
-        "default_prompt": ""
+        "custom_prompt": settings.get("custom_prompt", "") if settings else "",
+        "default_prompt": settings.get("default_prompt", "") if settings else "",
+        "model_name": app_config.get("model_name", "gpt-4o-mini") if app_config else "gpt-4o-mini",
+        "ai_active": app_config.get("ai_active", True) if app_config else True
     })
 
 
@@ -2869,8 +3269,17 @@ def get_llm_prompt(app_name):
 @client_required
 def save_llm_prompt(app_name=None):
     client_id = session.get("client_id")
-    data = request.json
+    data = request.json or {}
 
+    # Extract app_name from data if not in path (fixes Save Persona button)
+    if not app_name:
+        app_name = data.get("app_name")
+
+    if not app_name:
+        return jsonify({"error": "Application name is required"}), 400
+
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
     db.llm_settings.update_one(
         {
             "client_id": client_id,
@@ -2886,21 +3295,58 @@ def save_llm_prompt(app_name=None):
         upsert=True
     )
 
+    # 2. Update Model & Prompt Selection (App-Scoped Single Document)
+    update_fields = {}
+    if "model_name" in data: update_fields["model_name"] = data.get("model_name")
+    if "ai_active" in data: update_fields["ai_active"] = data.get("ai_active")
+    if "custom_prompt" in data: update_fields["prompt"] = data.get("custom_prompt")
+    if "plan_type" in data: update_fields["plan_type"] = data.get("plan_type")
+
+    if update_fields:
+        db.client_apps.update_one(
+            {"client_id": client_id, "app_name": app_name},
+            {"$set": update_fields}
+        )
+
     return jsonify({"status": "saved"})
 
 
+
+@app.route("/api/model-pricing/<model_name>")
+@client_required
+def api_model_pricing(model_name):
+    pricing = get_model_pricing(model_name)
+    if not pricing:
+        return jsonify({"error": "Model not found"}), 404
+        
+    # Standardize response for UI
+    return jsonify({
+        "model_name": pricing.get("model_name"),
+        "input_cost_per_1k": pricing.get("input_cost_per_1k_tokens"),
+        "output_cost_per_1k": pricing.get("output_cost_per_1k_tokens"),
+        "estimated_cost_per_call": pricing.get("estimated_cost_per_call"),
+        "level": pricing.get("level", "Standard")
+    })
 
 @app.route("/llm-settings")
 @client_required
 def llm_settings():
     client_id = session.get("client_id")
-
+    profile = db.clients.find_one({"_id": safely_get_id(client_id)})
+    
+    # Fetch restricted model list
+    plan_type = profile.get("plan_type", "free")
+    allowed_models = get_allowed_models(plan_type)
+    
     # Fetch from correct collection
     applications = list(db.client_apps.find({"client_id": client_id}))
 
     return render_template("llm_settings.html",
                            applications=applications,
-                           client_apps=applications)
+                           client_apps=applications,
+                           profile=profile,
+                           models=MODELS_LIST,
+                           allowed_models=allowed_models)
 
 # @app.route("/client/create_application", methods=["POST"])
 # def create_application_llm():
@@ -3050,6 +3496,348 @@ def test_db():
 
 
 
+# ------------------ SAAS CORE ROUTES ------------------
+
+@app.route("/pricing")
+@client_required
+def pricing():
+    client_id = session.get("client_id")
+    profile = db.clients.find_one({"_id": safely_get_id(client_id)})
+    plans = list(db.subscription_plans.find()) or SUBSCRIPTION_PLANS
+    return render_template("pricing.html", plans=plans, profile=profile)
+
+@app.route("/api/create-checkout-session/<plan_id>")
+@client_required
+def create_checkout_session(plan_id):
+    client_id = session.get("client_id")
+    if not client_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    if not stripe.api_key:
+        logger.error("Stripe API key is missing.")
+        return jsonify({"error": "Stripe is not configured."}), 500
+    
+    plan_id = plan_id.lower()
+    plan = next((p for p in SUBSCRIPTION_PLANS if p["plan_id"] == plan_id), None)
+    
+    if not plan:
+        return jsonify({"error": "Invalid plan selected"}), 400
+
+    # Free plan doesn't need checkout
+    if plan_id == "free":
+        db.clients.update_one(
+            {"_id": safely_get_id(client_id)},
+            {"$set": {"plan_type": "free", "subscription_status": "active"}}
+        )
+        return redirect("/billing")
+
+    try:
+        client_data = db.clients.find_one({"_id": safely_get_id(client_id)})
+        stripe_customer_id = client_data.get("stripe_customer_id")
+
+        if not stripe_customer_id:
+            customer = stripe.Customer.create(
+                email=client_data.get("email"),
+                metadata={'client_id': str(client_id)}
+            )
+            stripe_customer_id = customer.id
+            db.clients.update_one({"_id": safely_get_id(client_id)}, {"$set": {"stripe_customer_id": stripe_customer_id}})
+
+        checkout_session = stripe.checkout.Session.create(
+            customer=stripe_customer_id,
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': f"ConnexHub {plan['name']}",
+                        'description': f"Access to {', '.join(plan['allowed_models'])} models",
+                    },
+                    'unit_amount': int(plan['price_monthly'] * 100),
+                    'recurring': {'interval': 'month'},
+                },
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url=request.host_url + 'billing?success=true&session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=request.host_url + 'pricing',
+            metadata={
+                'client_id': str(client_id),
+                'plan_id': plan_id
+            }
+        )
+        return redirect(checkout_session.url, code=303)
+    except Exception as e:
+        logger.error(f"Stripe Error: {e}")
+        return jsonify({"error": "Payment initialization failed. Please try again."}), 500
+
+@app.route("/api/stripe-webhook", methods=['POST'])
+def stripe_webhook():
+    payload = request.data
+    sig_header = request.headers.get('STRIPE_SIGNATURE')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        return 'Invalid payload', 400
+    except stripe.error.SignatureVerificationError as e:
+        return 'Invalid signature', 400
+
+    if event['type'] == 'checkout.session.completed':
+        session_obj = event['data']['object']
+        client_id = session_obj['metadata']['client_id']
+        plan_id = session_obj['metadata']['plan_id']
+        stripe_sub_id = session_obj['subscription']
+        stripe_cust_id = session_obj['customer']
+
+        # Get subscription details for renewal date
+        sub = stripe.Subscription.retrieve(stripe_sub_id)
+        renewal_date = datetime.fromtimestamp(sub.current_period_end, tz=IST).replace(tzinfo=None)
+
+        db.clients.update_one(
+            {"_id": safely_get_id(client_id)},
+            {"$set": {
+                "plan_type": plan_id,
+                "stripe_subscription_id": stripe_sub_id,
+                "stripe_customer_id": stripe_cust_id,
+                "subscription_status": "active",
+                "renewal_date": renewal_date
+            }, "$push": {
+                "billing_history": {
+                    "date": datetime.now(IST).replace(tzinfo=None),
+                    "event": f"Subscribed to {plan_id.upper()}",
+                    "amount": session_obj.get("amount_total", 0) / 100
+                }
+            }}
+        )
+        logger.info(f"Subscription activated for client {client_id}")
+
+    elif event['type'] == 'invoice.payment_succeeded':
+        invoice = event['data']['object']
+        stripe_cust_id = invoice['customer']
+        
+        # Reset monthly usage on successful renewal payment
+        renewal_date_ts = invoice.get('lines', {}).get('data', [{}])[0].get('period', {}).get('end', 0)
+        renewal_date = datetime.fromtimestamp(renewal_date_ts, tz=IST).replace(tzinfo=None)
+        
+        db.clients.update_one(
+            {"stripe_customer_id": stripe_cust_id},
+            {"$set": {
+                "subscription_status": "active",
+                "usage.monthly_calls": 0,
+                "renewal_date": renewal_date
+            }}
+        )
+        logger.info(f"Payment renewal succeeded for customer {stripe_cust_id}")
+
+    elif event['type'] == 'customer.subscription.deleted':
+        subscription = event['data']['object']
+        stripe_cust_id = subscription['customer']
+        db.clients.update_one(
+            {"stripe_customer_id": stripe_cust_id},
+            {"$set": {
+                "plan_type": "free",
+                "subscription_status": "cancelled",
+                "stripe_subscription_id": None
+            }}
+        )
+        logger.info(f"Subscription cancelled for customer {stripe_cust_id}")
+
+    elif event['type'] == 'invoice.payment_failed':
+        invoice = event['data']['object']
+        stripe_cust_id = invoice['customer']
+        db.clients.update_one(
+            {"stripe_customer_id": stripe_cust_id},
+            {"$set": {"subscription_status": "past_due"}}
+        )
+        logger.warning(f"Payment failed for customer {stripe_cust_id}")
+
+    elif event['type'] == 'customer.subscription.deleted':
+        subscription = event['data']['object']
+        stripe_cust_id = subscription['customer']
+        db.clients.update_one(
+            {"stripe_customer_id": stripe_cust_id},
+            {"$set": {
+                "plan_type": "free",
+                "subscription_status": "cancelled",
+                "stripe_subscription_id": None
+            }}
+        )
+        logger.info(f"Subscription deleted for customer {stripe_cust_id}")
+
+    elif event['type'] == 'customer.subscription.updated':
+        subscription = event['data']['object']
+        stripe_cust_id = subscription['customer']
+        # Extract new plan info if upgraded/downgraded via billing portal
+        # This assumes your Stripe Price IDs are mapped in some config or consistent
+        # For simplicity in this demo, we'll look for metadata or plan nicknames
+        status = subscription['status']
+        db.clients.update_one(
+            {"stripe_customer_id": stripe_cust_id},
+            {"$set": {"subscription_status": status}}
+        )
+
+    return '', 200
+
+@app.route("/api/stripe-portal")
+@login_required
+def stripe_portal():
+    client_id = session.get("client_id")
+    client_data = db.clients.find_one({"_id": safely_get_id(client_id)})
+    if not client_data or not client_data.get("stripe_customer_id"):
+        return redirect("/billing")
+    
+    try:
+        portal_session = stripe.billing_portal.Session.create(
+            customer=client_data["stripe_customer_id"],
+            return_url=request.host_url + 'billing',
+        )
+        return redirect(portal_session.url, code=303)
+    except Exception as e:
+        logger.error(f"Portal Error: {e}")
+        return redirect("/billing")
+
+
+def get_billing_data(client_id):
+    """Helper to aggregate all billing and usage metrics for a client."""
+    now = datetime.now(IST)
+    start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    
+    # 1. Total Metrics (MTD)
+    stats_pipeline = [
+        {"$match": {"client_id": str(client_id), "timestamp": {"$gte": start_of_month}}},
+        {"$group": {
+            "_id": None,
+            "total_calls": {"$sum": 1},
+            "total_tokens": {"$sum": "$total_tokens"},
+            "total_cost": {"$sum": "$cost"}
+        }}
+    ]
+    summary = list(db.call_logs.aggregate(stats_pipeline))
+    stats = summary[0] if summary else {"total_calls": 0, "total_tokens": 0, "total_cost": 0}
+
+    # 2. Daily Cost (Today)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    today_stats = list(db.call_logs.aggregate([
+        {"$match": {"client_id": str(client_id), "timestamp": {"$gte": today_start}}},
+        {"$group": {"_id": None, "cost": {"$sum": "$cost"}, "calls": {"$sum": 1}}}
+    ]))
+    today = today_stats[0] if today_stats else {"cost": 0, "calls": 0}
+
+    # 3. Usage Per Application
+    app_usage = list(db.call_logs.aggregate([
+        {"$match": {"client_id": str(client_id), "timestamp": {"$gte": start_of_month}}},
+        {"$group": {"_id": "$app_name", "calls": {"$sum": 1}, "tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost"}}},
+        {"$sort": {"calls": -1}}
+    ]))
+
+    # 4. Cost Per Model
+    model_usage = list(db.call_logs.aggregate([
+        {"$match": {"client_id": str(client_id), "timestamp": {"$gte": start_of_month}}},
+        {"$group": {"_id": "$model_used", "cost": {"$sum": "$cost"}, "calls": {"$sum": 1}}},
+        {"$sort": {"cost": -1}}
+    ]))
+
+    # 5. 7-Day History
+    seven_days_ago = (now - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0).replace(tzinfo=None)
+    daily_history = list(db.call_logs.aggregate([
+        {"$match": {"client_id": str(client_id), "timestamp": {"$gte": seven_days_ago}}},
+        {"$group": {"_id": {"day": {"$dayOfMonth": "$timestamp"}, "month": {"$month": "$timestamp"}}, "calls": {"$sum": 1}}},
+        {"$sort": {"_id.month": 1, "_id.day": 1}}
+    ]))
+
+    return {
+        "stats": stats,
+        "today": today,
+        "app_usage": app_usage,
+        "model_usage": model_usage,
+        "daily_history": daily_history
+    }
+
+@app.route("/api/usage-stats")
+@client_required
+def api_usage_stats():
+    """Live JSON endpoint for dashboard polling."""
+    client_id = session.get("client_id")
+    profile = db.clients.find_one({"_id": safely_get_id(client_id)})
+    if not profile:
+        return jsonify({"error": "Profile not found"}), 404
+        
+    data = get_billing_data(client_id)
+    # Add profile usage counters directly with full defaults
+    pu = profile.get("usage", {})
+    data["profile_usage"] = {
+        "daily_calls": pu.get("daily_calls", 0),
+        "monthly_calls": pu.get("monthly_calls", 0),
+        "overage_accumulated": pu.get("overage_accumulated", 0),
+        "total_cost_mtd": pu.get("total_cost_mtd", 0)
+    }
+    
+    # Format dates/ObjectIds for JSON
+    def json_serial(obj):
+        if isinstance(obj, (datetime, ObjectId)):
+            return str(obj)
+        raise TypeError ("Type %s not serializable" % type(obj))
+
+    import json
+    return Response(json.dumps(data, default=json_serial), mimetype='application/json')
+
+@app.route("/billing")
+@client_required
+def billing():
+    client_id = session.get("client_id")
+    profile = db.clients.find_one({"_id": safely_get_id(client_id)})
+    if not profile:
+        return redirect(url_for("login"))
+
+    # FAIL-SAFE: Explicitly initialize all expected dashboard fields
+    if not profile.get('usage') or not isinstance(profile.get('usage'), dict):
+        profile['usage'] = {
+            "daily_calls": 0, 
+            "monthly_calls": 0,
+            "overage_accumulated": 0,
+            "total_cost_mtd": 0
+        }
+    else:
+        # Fill in missing keys if sub-dictionary exists but is incomplete
+        usage = profile['usage']
+        if 'daily_calls' not in usage: usage['daily_calls'] = 0
+        if 'monthly_calls' not in usage: usage['monthly_calls'] = 0
+        if 'overage_accumulated' not in usage: usage['overage_accumulated'] = 0
+        if 'total_cost_mtd' not in usage: usage['total_cost_mtd'] = 0
+    
+    if not profile.get('plan_type'):
+        profile['plan_type'] = "free"
+        
+    if not profile.get('renewal_date'):
+        profile['renewal_date'] = None
+
+    # Consolidated Plans & Defaults
+    plans = list(db.subscription_plans.find()) or SUBSCRIPTION_PLANS
+    current_plan_id = profile.get("plan_type", "free")
+    profile['plan_data'] = next((p for p in plans if p.get("plan_id") == current_plan_id), plans[0])
+
+    data = get_billing_data(client_id)
+    history = list(db.call_logs.find({"client_id": str(client_id)}).sort("timestamp", -1).limit(10))
+    llm_pricing = list(db.llm_pricing.find()) or LLM_PRICING_DEFAULTS
+
+    return render_template("billing.html",
+                           profile=profile,
+                           stats=data["stats"],
+                           today=data["today"],
+                           app_usage=data["app_usage"],
+                           model_usage=data["model_usage"],
+                           history=history,
+                           daily_history=data["daily_history"],
+                           llm_pricing=llm_pricing)
+
+@app.route("/api/upgrade-plan/<plan_id>")
+@client_required
+def upgrade_plan(plan_id):
+    return redirect(url_for("create_checkout_session", plan_id=plan_id))
+
 # ------------------ RUN ------------------
 # ------------------ ADMIN : CLIENT OPERATIONS (Iteration 2) ------------------
 
@@ -3073,7 +3861,7 @@ def delete_client(client_id):
     try:
         from bson import ObjectId
         # 1. Delete client record
-        db["clients"].delete_one({"_id": ObjectId(client_id)})
+        db["clients"].delete_one({"_id": safely_get_id(client_id)})
         # 2. Delete related apps, forms, calls
         db.client_apps.delete_many({"client_id": client_id})
         db.form_builders.delete_many({"client_id": client_id})
@@ -3105,7 +3893,19 @@ def create_client():
             "role": "CLIENT",
             "name": name,
             "number": number,
-            "phone": number # Keep both for compatibility
+            "phone": number, # Keep both for compatibility
+            "plan_type": "pro", # DEFAULT: Start with Pro Trial
+            "created_at": datetime.now(IST).replace(tzinfo=None),
+            "usage": {
+                "daily_calls": 0,
+                "monthly_calls": 0,
+                "last_usage_reset": datetime.now(IST).replace(tzinfo=None)
+            },
+            "trial": {
+                "trial_start": datetime.now(IST).replace(tzinfo=None),
+                "trial_end": (datetime.now(IST) + timedelta(days=7)).replace(tzinfo=None),
+                "is_trial_active": True
+            }
         })
         return redirect("/manage-clients")
         

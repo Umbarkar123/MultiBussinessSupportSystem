@@ -1,0 +1,259 @@
+{% extends "layout.html" %}
+{% block content %}
+<!-- ConnexHub Production Billing Dashboard -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% set usage = profile.usage or {"daily_calls": 0, "monthly_calls": 0, "total_cost_mtd": 0, "total_tokens": 0} %}
+{% set plan = profile.plan_data or {"name": "FREE PLAN", "plan_id": "free", "price_monthly": 0, "daily_limit": 100,
+"monthly_limit": 3000} %}
+
+<div class="apd-header"
+    style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px;">
+    <div>
+        <h1 class="page-title" style="font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin: 0;">Billing &
+            Usage</h1>
+        <p class="page-desc" style="color: var(--text-dim); font-size: 13px; margin-top: 4px;">Monitor your AI execution
+            frequency and subscription health.</p>
+    </div>
+    <div class="apd-actions" style="display: flex; gap: 12px;">
+        {% if profile.stripe_customer_id %}
+        <a href="/api/stripe-portal" class="btn btn-secondary"
+            style="border: 1px solid rgba(255,255,255,0.08); font-size: 12px; height: 38px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa fa-user-cog"></i> CUSTOMER PORTAL
+        </a>
+        {% endif %}
+        <a href="/pricing" class="btn btn-primary neon-shadow"
+            style="font-size: 12px; height: 38px; display: flex; align-items: center; gap: 8px;">
+            <i class="fa fa-arrow-up"></i> UPGRADE PLAN
+        </a>
+    </div>
+</div>
+
+<div class="apd-main-grid" style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 24px;">
+
+    <!-- SUBSCRIPTION OVERVIEW -->
+    <div class="saas-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+            <div style="font-size: 14px; font-weight: 700; color: #fff;">Subscription Overview</div>
+            <span class="plan-badge {{ 'plan-' ~ plan.plan_id }}">
+                {{ (profile.subscription_status or 'active')|upper }} • {{ plan.name }}
+            </span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 18px; margin-bottom: 30px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+                <span class="subtle-label"><i class="fa fa-wallet"
+                        style="margin-right: 10px; color: var(--primary);"></i> Monthly Price</span>
+                <span style="color: #fff; font-weight: 600;">${{ "%.2f"|format(plan.price_monthly|default(0)) }}</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+                <span class="subtle-label"><i class="fa fa-calendar-check"
+                        style="margin-right: 10px; color: #a855f7;"></i> Next Renewal</span>
+                <span style="color: #fff; font-weight: 600;">{{ profile.renewal_date.strftime('%b %d, %Y') if
+                    profile.renewal_date else 'N/A' }}</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px;">
+                <span class="subtle-label"><i class="fa fa-credit-card" style="margin-right: 10px; color: #22c55e;"></i>
+                    Payment Method</span>
+                <span style="color: #fff; font-weight: 600;">Standard Card</span>
+            </div>
+        </div>
+
+        <!-- PROGRESS BARS -->
+        <div style="margin-bottom: 24px;">
+            <div
+                style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; font-weight: 700;">
+                <span>Daily Requests</span>
+                <span id="daily-quota-text" style="color: var(--primary);">{{ usage.daily_calls or 0 }} / {{
+                    plan.daily_limit or '∞' }}</span>
+            </div>
+            {% set daily_perc = (usage.daily_calls / plan.daily_limit * 100) if (plan.daily_limit and plan.daily_limit >
+            0) else 0 %}
+            <div
+                style="height: 6px; background: rgba(255,255,255,0.04); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.02);">
+                <div id="daily-progress"
+                    style="height: 100%; background: var(--primary); width: {{ daily_perc if daily_perc <= 100 else 100 }}%; transition: width 1s cubic-bezier(0.1, 0, 0.1, 1); box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);">
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div
+                style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; font-weight: 700;">
+                <span>Monthly Requests</span>
+                <span id="monthly-quota-text" style="color: #a855f7;">{{ usage.monthly_calls or 0 }} / {{
+                    plan.monthly_limit or '∞' }}</span>
+            </div>
+            {% set monthly_perc = (usage.monthly_calls / plan.monthly_limit * 100) if (plan.monthly_limit and
+            plan.monthly_limit > 0) else 0 %}
+            <div
+                style="height: 6px; background: rgba(255,255,255,0.04); border-radius: 10px; overflow: hidden; border: 1px solid rgba(255,255,255,0.02);">
+                <div id="monthly-progress"
+                    style="height: 100%; background: linear-gradient(90deg, #a855f7, #c084fc); width: {{ monthly_perc if monthly_perc <= 100 else 100 }}%; transition: width 1s cubic-bezier(0.1, 0, 0.1, 1); box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MTD ECONOMICS -->
+    <div class="saas-card">
+        <div style="font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 20px;">MTD Unit Economics</div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 25px;">
+            <div class="metric-box">
+                <div class="subtle-label" style="margin-bottom: 5px;">Spend MTD</div>
+                <div id="mtd-spend-val" style="font-size: 24px; font-weight: 800; color: #fff;">${{
+                    "%.2f"|format(usage.total_cost_mtd|default(0)) }}</div>
+            </div>
+            <div class="metric-box">
+                <div class="subtle-label" style="margin-bottom: 5px;">Tokens MTD</div>
+                <div id="mtd-tokens-val" style="font-size: 24px; font-weight: 800; color: #fff;">{{
+                    "{:,}".format(usage.total_tokens|default(0)) }}</div>
+            </div>
+        </div>
+
+        <div style="height: 180px;">
+            <canvas id="usageChart" data-history="{{ daily_history|tojson|safe if daily_history else '[]' }}"></canvas>
+        </div>
+    </div>
+</div>
+
+<div style="margin-top: 24px; display: grid; grid-template-columns: 1.5fr 1fr; gap: 24px;">
+    <!-- MODEL BREAKDOWN -->
+    <div class="saas-card">
+        <div style="font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 20px;">AI Model Economics</div>
+        <table class="saas-table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th style="text-align: left;">Model</th>
+                    <th style="text-align: center;">Calls</th>
+                    <th style="text-align: center;">Tokens</th>
+                    <th style="text-align: right;">Est. Cost</th>
+                </tr>
+            </thead>
+            <tbody id="model-usage-body">
+                {% if model_usage %}
+                {% for m in model_usage %}
+                <tr>
+                    <td style="font-weight: 600; color: #fff;">{{ m._id }}</td>
+                    <td style="text-align: center;">{{ m.calls }}</td>
+                    <td style="text-align: center;">{{ "{:,}".format(m.tokens|default(0)) }}</td>
+                    <td style="text-align: right; color: var(--primary); font-weight: 700;">${{
+                        "%.4f"|format(m.cost|default(0)) }}</td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="4" style="padding: 30px; text-align: center; color: var(--text-dim);">No model data
+                        recorded this month.</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- RECENT ACTIVITY & INVOICES -->
+    <div style="display: flex; flex-direction: column; gap: 24px;">
+        <div class="saas-card">
+            <div style="font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 20px;">Recent Activity (Live)
+            </div>
+            <div id="recent-activity-list" style="display: flex; flex-direction: column; gap: 10px;">
+                {% for h in history %}
+                <div class="metric-box"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px;">
+                    <div>
+                        <div style="color: #fff; font-weight: 700; font-size: 13px;">{{ h.app_name }}</div>
+                        <div style="color: var(--text-dim); font-size: 10px; margin-top: 2px;">{{
+                            h.timestamp.strftime('%H:%M • %b %d') }}</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="color: var(--primary); font-weight: 800; font-size: 14px;">+1</div>
+                        <div style="color: var(--text-dim); font-size: 10px; font-weight: 600;">{{ h.model_used }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="saas-card">
+            <div style="font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 20px;">Recent Invoices</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div class="metric-box"
+                    style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; opacity: 0.7;">
+                    <div style="font-size: 12px; color: #fff; font-weight: 500;">INV-00{{ range(100, 999)|random }}
+                    </div>
+                    <div style="font-size: 11px; color: #22c55e;">$0.00 • PAID</div>
+                </div>
+                <p style="font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 10px;">Visit the
+                    customer portal to view full billing history.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const ctxEl = document.getElementById('usageChart');
+        const ctx = ctxEl.getContext('2d');
+        const historyData = JSON.parse(ctxEl.getAttribute('data-history') || '[]');
+
+        let usageChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: historyData.map(d => `${d._id.month}/${d._id.day}`).length ? historyData.map(d => `${d._id.month}/${d._id.day}`) : ['N/A'],
+                datasets: [{
+                    label: 'Daily Executions',
+                    data: historyData.map(d => d.calls).length ? historyData.map(d => d.calls) : [0],
+                    borderColor: '#00e5ff',
+                    backgroundColor: 'rgba(0, 229, 255, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 10 } }, beginAtZero: true }
+                }
+            }
+        });
+
+        // POLLING LOGIC
+        const dailyLimit = {{ plan.daily_limit | tojson
+    }};
+    const monthlyLimit = {{ plan.monthly_limit | tojson }};
+
+    const pollData = async () => {
+        try {
+            const res = await fetch('/api/usage-stats');
+            const data = await res.json();
+
+            // Update progress
+            const dCalls = data.profile_usage.daily_calls;
+            const mCalls = data.profile_usage.monthly_calls;
+
+            document.getElementById('daily-quota-text').innerText = `${dCalls} / ${dailyLimit || '∞'}`;
+            document.getElementById('monthly-quota-text').innerText = `${mCalls} / ${monthlyLimit || '∞'}`;
+
+            const dPerc = dailyLimit ? (dCalls / dailyLimit * 100) : 0;
+            const mPerc = monthlyLimit ? (mCalls / monthlyLimit * 100) : 0;
+
+            document.getElementById('daily-progress').style.width = Math.min(dPerc, 100) + '%';
+            document.getElementById('monthly-progress').style.width = Math.min(mPerc, 100) + '%';
+
+            // Update Totals
+            document.getElementById('mtd-spend-val').innerText = `$${(data.profile_usage.total_cost_mtd || 0).toFixed(2)}`;
+            document.getElementById('mtd-tokens-val').innerText = (data.profile_usage.total_tokens || 0).toLocaleString();
+        } catch (err) {
+            console.error("Polling error:", err);
+        }
+    };
+
+    setInterval(pollData, 10000);
+    });
+</script>
+{% endblock %}

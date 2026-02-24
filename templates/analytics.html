@@ -21,6 +21,62 @@
         <button class="ana-export" onclick="exportTable()">Export CSV</button>
     </div>
 
+    <!-- SAAS USAGE ROW -->
+    <div class="apd-kpi-row" style="margin-bottom: 24px;">
+        <div class="apd-kpi" style="border-left: 4px solid var(--primary);">
+            <div class="apd-kpi-icon" style="background: rgba(0,229,255,0.1); color: var(--primary);">
+                <i class="fa fa-layer-group"></i>
+            </div>
+            <div>
+                <div class="apd-kpi-label">Current Plan</div>
+                <div class="apd-kpi-value" style="font-size: 16px;">{{ profile.plan.name }}</div>
+            </div>
+        </div>
+        <div class="apd-kpi" style="border-left: 4px solid #a855f7;">
+            <div class="apd-kpi-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;">
+                <i class="fa fa-chart-line"></i>
+            </div>
+            <div style="flex: 1;">
+                <div class="apd-kpi-label">Daily Usage</div>
+                <div class="progress-bar" style="height: 6px; margin: 4px 0;">
+                    {% set d_calls = profile.usage.daily_calls if (profile.usage and profile.usage.daily_calls) else 0
+                    %}
+                    {% set d_limit = profile.plan.daily_limit if (profile.plan and profile.plan.daily_limit) else 100 %}
+                    {% set d_perc = (d_calls / d_limit * 100) if d_limit > 0 else 0 %}
+                    <div class="progress-fill" style="width: {{ d_perc }}%; background: #a855f7;"></div>
+                </div>
+                <div style="font-size: 10px; color: var(--text-dim);">{{ d_calls }} / {{ d_limit }}</div>
+            </div>
+        </div>
+        <div class="apd-kpi" style="border-left: 4px solid var(--success);">
+            <div class="apd-kpi-icon" style="background: rgba(34, 197, 94, 0.1); color: var(--success);">
+                <i class="fa fa-calendar-check"></i>
+            </div>
+            <div style="flex: 1;">
+                <div class="apd-kpi-label">Monthly Usage</div>
+                <div class="progress-bar" style="height: 6px; margin: 4px 0;">
+                    {% set m_calls = profile.usage.monthly_calls if (profile.usage and profile.usage.monthly_calls) else
+                    0 %}
+                    {% set m_limit = profile.plan.monthly_limit if (profile.plan and profile.plan.monthly_limit) else
+                    3000 %}
+                    {% set m_perc = (m_calls / m_limit * 100) if m_limit > 0 else 0 %}
+                    <div class="progress-fill" style="width: {{ m_perc }}%; background: var(--success);"></div>
+                </div>
+                <div style="font-size: 10px; color: var(--text-dim);">{{ m_calls }} / {{ m_limit }}</div>
+            </div>
+        </div>
+        <div class="apd-kpi" style="border-left: 4px solid var(--danger);">
+            <div class="apd-kpi-icon" style="background: rgba(239, 68, 68, 0.1); color: var(--danger);">
+                <i class="fa fa-clock"></i>
+            </div>
+            <div>
+                <div class="apd-kpi-label">Trial Expiry</div>
+                <div class="apd-kpi-value" style="font-size: 16px;">{{ profile.trial.trial_end.strftime('%d %b') if
+                    profile.trial.trial_end else 'N/A' }}</div>
+            </div>
+        </div>
+    </div>
+
     <!-- KPI ROW (4 Compact Cards) -->
     <div class="ana-kpi-row">
         <div class="ana-kpi">
