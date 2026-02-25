@@ -3151,9 +3151,9 @@ def api_page(app_name):
 def retell_config():
     """
     Called by Retell AI (Dynamic Config) during a call.
-    It receives metadata (client_id, app_name) or call_id and returns the system prompt.
+    It receives metadata (client_id, app_name) or call_id and returns the merged system prompt.
     """
-    data = request.get_json()
+    data = request.get_json() or {}
     metadata = data.get("metadata", {})
     client_id = metadata.get("client_id")
     app_name = metadata.get("app_name")
@@ -3161,32 +3161,36 @@ def retell_config():
     # Fallback to call_id lookup if metadata is missing
     call_id = data.get("call_id") or request.args.get("call_id")
     
-    if not client_id and call_id:
-        # Check form submissions first
-        sub = db.form_submissions.find_one({"_id": ObjectId(call_id)})
-        if sub:
-            client_id = sub.get("client_id")
-            app_name = sub.get("app_name")
-        else:
-            # Check call requests
+    if not (client_id and app_name) and call_id:
+        try:
+            # Check call requests (Unified collection for SaaS)
             req = db.call_requests.find_one({"_id": ObjectId(call_id)})
             if req:
                 client_id = req.get("client_id")
                 app_name = req.get("app_name")
+        except Exception as e:
+            logger.error(f"Error looking up call_id {call_id}: {e}")
 
-    # Get prompt from consolidated collection
-    settings = db.llm_settings.find_one({
-        "client_id": client_id,
-        "app_name": app_name
-    })
-
-    if settings:
-        system_prompt = settings.get("custom_prompt") or settings.get("default_prompt")
+    # Final lookup from LLM Settings (Merged Prompt)
+    if client_id and app_name:
+        settings = db.llm_settings.find_one({
+            "client_id": client_id,
+            "app_name": app_name
+        })
+        
+        if settings:
+            # MERGE Base System Behavior + Agent Persona Overlay
+            base = settings.get("default_prompt", "").strip()
+            custom = settings.get("custom_prompt", "").strip()
+            system_prompt = f"{base}\n\nUSER-DEFINED PERSONA OVERLAY:\n{custom}".strip() if custom else base
+        else:
+            system_prompt = f"You are a professional customer support assistant for {app_name}."
     else:
         system_prompt = "You are a professional customer support assistant."
 
     return jsonify({
-        "agent_prompt": system_prompt
+        "agent_prompt": system_prompt,
+        "system_prompt": system_prompt
     })
 
 @app.route("/check-session")
