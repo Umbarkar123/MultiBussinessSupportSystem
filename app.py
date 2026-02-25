@@ -11,7 +11,6 @@ from twilio.rest import Client
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 from openai import OpenAI
-import stripe
 from dotenv import load_dotenv
 from bson import ObjectId
 from functools import wraps
@@ -72,7 +71,7 @@ def client_required(f):
 MONGO_URI = os.getenv("MONGO_URI")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
-stripe.api_key = STRIPE_SECRET_KEY
+# stripe.api_key removed to neutralize dependency
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
@@ -3509,195 +3508,34 @@ def pricing():
 @app.route("/api/create-checkout-session/<plan_id>")
 @client_required
 def create_checkout_session(plan_id):
+    """Stubbed route to prevent crashes. Payment logic removed."""
+    # To keep UI logic consistent, we just redirect or show a message
     client_id = session.get("client_id")
     if not client_id:
         return jsonify({"error": "Unauthorized"}), 401
-
-    if not stripe.api_key:
-        logger.error("Stripe API key is missing.")
-        return jsonify({"error": "Stripe is not configured."}), 500
     
     plan_id = plan_id.lower()
-    plan = next((p for p in SUBSCRIPTION_PLANS if p["plan_id"] == plan_id), None)
-    
-    if not plan:
-        return jsonify({"error": "Invalid plan selected"}), 400
-
-    # Free plan doesn't need checkout
+    # If they select free, just update directly (existing logic)
     if plan_id == "free":
         db.clients.update_one(
             {"_id": safely_get_id(client_id)},
             {"$set": {"plan_type": "free", "subscription_status": "active"}}
         )
         return redirect("/billing")
-
-    try:
-        client_data = db.clients.find_one({"_id": safely_get_id(client_id)})
-        stripe_customer_id = client_data.get("stripe_customer_id")
-
-        if not stripe_customer_id:
-            customer = stripe.Customer.create(
-                email=client_data.get("email"),
-                metadata={'client_id': str(client_id)}
-            )
-            stripe_customer_id = customer.id
-            db.clients.update_one({"_id": safely_get_id(client_id)}, {"$set": {"stripe_customer_id": stripe_customer_id}})
-
-        checkout_session = stripe.checkout.Session.create(
-            customer=stripe_customer_id,
-            payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'usd',
-                    'product_data': {
-                        'name': f"ConnexHub {plan['name']}",
-                        'description': f"Access to {', '.join(plan['allowed_models'])} models",
-                    },
-                    'unit_amount': int(plan['price_monthly'] * 100),
-                    'recurring': {'interval': 'month'},
-                },
-                'quantity': 1,
-            }],
-            mode='subscription',
-            success_url=request.host_url + 'billing?success=true&session_id={CHECKOUT_SESSION_ID}',
-            cancel_url=request.host_url + 'pricing',
-            metadata={
-                'client_id': str(client_id),
-                'plan_id': plan_id
-            }
-        )
-        return redirect(checkout_session.url, code=303)
-    except Exception as e:
-        logger.error(f"Stripe Error: {e}")
-        return jsonify({"error": "Payment initialization failed. Please try again."}), 500
+    
+    # For others, we just mock success for now or redirect
+    return redirect("/pricing?info=manual_upgrade_required")
 
 @app.route("/api/stripe-webhook", methods=['POST'])
 def stripe_webhook():
-    payload = request.data
-    sig_header = request.headers.get('STRIPE_SIGNATURE')
-
-    try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
-        )
-    except ValueError as e:
-        return 'Invalid payload', 400
-    except stripe.error.SignatureVerificationError as e:
-        return 'Invalid signature', 400
-
-    if event['type'] == 'checkout.session.completed':
-        session_obj = event['data']['object']
-        client_id = session_obj['metadata']['client_id']
-        plan_id = session_obj['metadata']['plan_id']
-        stripe_sub_id = session_obj['subscription']
-        stripe_cust_id = session_obj['customer']
-
-        # Get subscription details for renewal date
-        sub = stripe.Subscription.retrieve(stripe_sub_id)
-        renewal_date = datetime.fromtimestamp(sub.current_period_end, tz=IST).replace(tzinfo=None)
-
-        db.clients.update_one(
-            {"_id": safely_get_id(client_id)},
-            {"$set": {
-                "plan_type": plan_id,
-                "stripe_subscription_id": stripe_sub_id,
-                "stripe_customer_id": stripe_cust_id,
-                "subscription_status": "active",
-                "renewal_date": renewal_date
-            }, "$push": {
-                "billing_history": {
-                    "date": datetime.now(IST).replace(tzinfo=None),
-                    "event": f"Subscribed to {plan_id.upper()}",
-                    "amount": session_obj.get("amount_total", 0) / 100
-                }
-            }}
-        )
-        logger.info(f"Subscription activated for client {client_id}")
-
-    elif event['type'] == 'invoice.payment_succeeded':
-        invoice = event['data']['object']
-        stripe_cust_id = invoice['customer']
-        
-        # Reset monthly usage on successful renewal payment
-        renewal_date_ts = invoice.get('lines', {}).get('data', [{}])[0].get('period', {}).get('end', 0)
-        renewal_date = datetime.fromtimestamp(renewal_date_ts, tz=IST).replace(tzinfo=None)
-        
-        db.clients.update_one(
-            {"stripe_customer_id": stripe_cust_id},
-            {"$set": {
-                "subscription_status": "active",
-                "usage.monthly_calls": 0,
-                "renewal_date": renewal_date
-            }}
-        )
-        logger.info(f"Payment renewal succeeded for customer {stripe_cust_id}")
-
-    elif event['type'] == 'customer.subscription.deleted':
-        subscription = event['data']['object']
-        stripe_cust_id = subscription['customer']
-        db.clients.update_one(
-            {"stripe_customer_id": stripe_cust_id},
-            {"$set": {
-                "plan_type": "free",
-                "subscription_status": "cancelled",
-                "stripe_subscription_id": None
-            }}
-        )
-        logger.info(f"Subscription cancelled for customer {stripe_cust_id}")
-
-    elif event['type'] == 'invoice.payment_failed':
-        invoice = event['data']['object']
-        stripe_cust_id = invoice['customer']
-        db.clients.update_one(
-            {"stripe_customer_id": stripe_cust_id},
-            {"$set": {"subscription_status": "past_due"}}
-        )
-        logger.warning(f"Payment failed for customer {stripe_cust_id}")
-
-    elif event['type'] == 'customer.subscription.deleted':
-        subscription = event['data']['object']
-        stripe_cust_id = subscription['customer']
-        db.clients.update_one(
-            {"stripe_customer_id": stripe_cust_id},
-            {"$set": {
-                "plan_type": "free",
-                "subscription_status": "cancelled",
-                "stripe_subscription_id": None
-            }}
-        )
-        logger.info(f"Subscription deleted for customer {stripe_cust_id}")
-
-    elif event['type'] == 'customer.subscription.updated':
-        subscription = event['data']['object']
-        stripe_cust_id = subscription['customer']
-        # Extract new plan info if upgraded/downgraded via billing portal
-        # This assumes your Stripe Price IDs are mapped in some config or consistent
-        # For simplicity in this demo, we'll look for metadata or plan nicknames
-        status = subscription['status']
-        db.clients.update_one(
-            {"stripe_customer_id": stripe_cust_id},
-            {"$set": {"subscription_status": status}}
-        )
-
-    return '', 200
+    """Stubbed webhook to prevent 500 errors in production."""
+    return jsonify({"status": "ignored"}), 200
 
 @app.route("/api/stripe-portal")
 @login_required
 def stripe_portal():
-    client_id = session.get("client_id")
-    client_data = db.clients.find_one({"_id": safely_get_id(client_id)})
-    if not client_data or not client_data.get("stripe_customer_id"):
-        return redirect("/billing")
-    
-    try:
-        portal_session = stripe.billing_portal.Session.create(
-            customer=client_data["stripe_customer_id"],
-            return_url=request.host_url + 'billing',
-        )
-        return redirect(portal_session.url, code=303)
-    except Exception as e:
-        logger.error(f"Portal Error: {e}")
-        return redirect("/billing")
+    """Stubbed route to prevent crashes. Payment portal removed."""
+    return redirect("/billing")
 
 
 def get_billing_data(client_id):
